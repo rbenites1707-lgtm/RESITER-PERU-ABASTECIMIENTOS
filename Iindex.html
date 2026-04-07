@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="theme-color" content="#0B2C6E"/>
+<title>RESITER PERÚ — Localizador de Grifos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+:root{
+  --blue-deep:#0B2C6E;
+  --blue-mid:#1A4DB5;
+  --blue-bright:#2563EB;
+  --blue-light:#EFF6FF;
+  --gold:#F59E0B;
+  --gold-light:#FEF3C7;
+  --red:#EF4444;
+  --green:#10B981;
+  --gray-50:#F8FAFC;
+  --gray-100:#F1F5F9;
+  --gray-200:#E2E8F0;
+  --gray-300:#CBD5E1;
+  --gray-500:#64748B;
+  --gray-700:#334155;
+  --gray-900:#0F172A;
+  --shadow-sm:0 1px 3px rgba(0,0,0,.08);
+  --shadow-md:0 4px 16px rgba(0,0,0,.12);
+  --shadow-lg:0 10px 40px rgba(0,0,0,.16);
+  --r:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:var(--gray-50);color:var(--gray-900);height:100vh;display:flex;flex-direction:column;overflow:hidden}
+
+/* ── HEADER ───────────────────────────────────── */
+header{
+  background:linear-gradient(135deg,var(--blue-deep) 0%,var(--blue-mid) 60%,#1e5fc2 100%);
+  padding:0 24px;height:64px;display:flex;align-items:center;justify-content:space-between;
+  box-shadow:0 2px 20px rgba(11,44,110,.4);flex-shrink:0;position:relative;z-index:100;
+}
+header::after{
+  content:'';position:absolute;bottom:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,var(--gold),#FBBF24,var(--gold));
+}
+.logo{display:flex;align-items:center;gap:12px}
+.logo-icon{
+  width:42px;height:42px;background:white;border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 2px 8px rgba(0,0,0,.2);flex-shrink:0;
+}
+.logo-icon svg{width:26px;height:26px}
+.logo-text{display:flex;flex-direction:column;line-height:1.1}
+.logo-title{
+  font-family:'Montserrat',sans-serif;font-weight:900;font-size:17px;
+  color:white;letter-spacing:1.5px;
+}
+.logo-sub{
+  font-family:'Montserrat',sans-serif;font-weight:600;font-size:9.5px;
+  color:var(--gold);letter-spacing:3px;text-transform:uppercase;
+}
+.header-stats{display:flex;gap:16px;align-items:center}
+.stat-pill{
+  background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);
+  border-radius:20px;padding:4px 14px;display:flex;align-items:center;gap:6px;
+  font-size:12px;color:rgba(255,255,255,.9);backdrop-filter:blur(4px);
+}
+.stat-pill b{color:var(--gold);font-weight:700}
+.gps-btn{
+  background:var(--gold);color:var(--blue-deep);border:none;
+  border-radius:20px;padding:7px 16px;font-size:12px;font-weight:700;
+  cursor:pointer;display:flex;align-items:center;gap:6px;
+  transition:.2s;font-family:'Montserrat',sans-serif;letter-spacing:.5px;
+}
+.gps-btn:hover{background:#e08b00;transform:translateY(-1px)}
+.gps-btn svg{width:14px;height:14px}
+
+/* ── MAIN LAYOUT ───────────────────────────────── */
+.app-body{display:flex;flex:1;overflow:hidden}
+
+/* ── SIDEBAR ───────────────────────────────────── */
+.sidebar{
+  width:380px;flex-shrink:0;background:white;display:flex;flex-direction:column;
+  border-right:1px solid var(--gray-200);overflow:hidden;
+  box-shadow:2px 0 12px rgba(0,0,0,.06);
+}
+
+/* Zone Tabs */
+.zone-tabs{display:flex;background:var(--gray-50);border-bottom:1px solid var(--gray-200);padding:12px 12px 0}
+.zone-tab{
+  flex:1;padding:10px 8px;border:none;background:transparent;
+  font-family:'Montserrat',sans-serif;font-weight:700;font-size:12px;
+  letter-spacing:.5px;cursor:pointer;border-bottom:3px solid transparent;
+  transition:.2s;color:var(--gray-500);display:flex;align-items:center;
+  justify-content:center;gap:6px;
+}
+.zone-tab.active{color:var(--blue-bright);border-bottom-color:var(--blue-bright)}
+.zone-tab:hover:not(.active){color:var(--blue-mid)}
+.tab-badge{
+  background:var(--gray-200);color:var(--gray-700);border-radius:10px;
+  padding:2px 7px;font-size:10px;font-weight:700;
+}
+.zone-tab.active .tab-badge{background:var(--blue-light);color:var(--blue-bright)}
+
+/* Filters */
+.filters{padding:14px;border-bottom:1px solid var(--gray-200);background:white}
+.search-wrap{position:relative;margin-bottom:10px}
+.search-wrap input{
+  width:100%;padding:10px 36px 10px 14px;border:1px solid var(--gray-200);
+  border-radius:var(--r);font-size:13px;outline:none;background:var(--gray-50);
+  font-family:'Inter',sans-serif;transition:.2s;
+}
+.search-wrap input:focus{border-color:var(--blue-bright);background:white;box-shadow:0 0 0 3px rgba(37,99,235,.1)}
+.search-icon{position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--gray-500);pointer-events:none}
+.filter-row{display:flex;gap:8px}
+.filter-select{
+  flex:1;padding:8px 10px;border:1px solid var(--gray-200);border-radius:8px;
+  font-size:12px;font-family:'Inter',sans-serif;color:var(--gray-700);
+  background:var(--gray-50);outline:none;cursor:pointer;transition:.2s;
+}
+.filter-select:focus{border-color:var(--blue-bright);background:white}
+.fuel-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
+.fuel-tag{
+  padding:3px 9px;border-radius:12px;font-size:10.5px;font-weight:600;
+  border:1px solid var(--gray-200);background:var(--gray-50);color:var(--gray-600);
+  cursor:pointer;transition:.15s;letter-spacing:.3px;
+}
+.fuel-tag.active{background:var(--blue-bright);color:white;border-color:var(--blue-bright)}
+.fuel-tag:hover:not(.active){border-color:var(--blue-mid);color:var(--blue-mid)}
+
+/* Results header */
+.results-header{
+  padding:10px 14px;background:var(--gray-50);border-bottom:1px solid var(--gray-100);
+  display:flex;align-items:center;justify-content:space-between;
+  font-size:12px;color:var(--gray-500);flex-shrink:0;
+}
+.results-count{font-weight:600;color:var(--blue-bright)}
+
+/* Station List */
+.station-list{overflow-y:auto;flex:1}
+.station-list::-webkit-scrollbar{width:4px}
+.station-list::-webkit-scrollbar-track{background:transparent}
+.station-list::-webkit-scrollbar-thumb{background:var(--gray-300);border-radius:2px}
+
+.station-card{
+  padding:13px 14px;border-bottom:1px solid var(--gray-100);cursor:pointer;
+  transition:.15s;position:relative;display:flex;flex-direction:column;gap:4px;
+}
+.station-card:hover{background:var(--blue-light)}
+.station-card.active{background:var(--blue-light);border-left:3px solid var(--blue-bright)}
+.card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.card-name{
+  font-weight:700;font-size:13px;color:var(--gray-900);font-family:'Montserrat',sans-serif;
+  line-height:1.3;flex:1;
+}
+.card-dist-badge{
+  background:var(--blue-deep);color:white;border-radius:10px;
+  padding:2px 8px;font-size:10px;font-weight:700;flex-shrink:0;white-space:nowrap;
+}
+.card-dist-badge.near{background:var(--green)}
+.card-location{font-size:11.5px;color:var(--gray-500);display:flex;align-items:center;gap:4px}
+.card-location svg{width:11px;height:11px;flex-shrink:0;color:var(--blue-bright)}
+.card-addr{font-size:11px;color:var(--gray-500);line-height:1.4;margin-top:2px}
+.card-fuels{display:flex;flex-wrap:wrap;gap:3px;margin-top:5px}
+.fuel-chip{
+  padding:2px 7px;border-radius:8px;font-size:10px;font-weight:600;letter-spacing:.3px;
+}
+.fuel-chip.D2{background:#FEE2E2;color:#991B1B}
+.fuel-chip.GR{background:#FEF3C7;color:#92400E}
+.fuel-chip.GP{background:#ECFDF5;color:#065F46}
+.fuel-chip.GLP{background:#EDE9FE;color:#4C1D95}
+.fuel-chip.GNV{background:#E0F2FE;color:#0C4A6E}
+.fuel-chip.UREA{background:#F0FDF4;color:#14532D}
+.card-actions{display:flex;gap:6px;margin-top:6px}
+.btn-nav,.btn-waze{
+  flex:1;padding:6px 10px;border:none;border-radius:8px;font-size:11px;
+  font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  gap:5px;transition:.15s;font-family:'Inter',sans-serif;
+}
+.btn-nav{background:var(--blue-bright);color:white}
+.btn-nav:hover{background:var(--blue-mid)}
+.btn-waze{background:#2BD1FC;color:#1a1a2e}
+.btn-waze:hover{background:#00B8D9}
+.btn-share{
+  padding:6px 10px;border:1px solid var(--gray-200);border-radius:8px;
+  background:white;font-size:11px;font-weight:600;cursor:pointer;
+  display:flex;align-items:center;gap:4px;color:var(--gray-600);
+  transition:.15s;font-family:'Inter',sans-serif;
+}
+.btn-share:hover{border-color:var(--blue-mid);color:var(--blue-mid)}
+.bandera-dot{
+  display:inline-block;width:8px;height:8px;border-radius:50%;
+  background:var(--blue-mid);margin-right:4px;flex-shrink:0;
+}
+.card-bandera{font-size:11px;color:var(--gray-600);display:flex;align-items:center;margin-top:2px}
+.no-results{
+  padding:40px 20px;text-align:center;color:var(--gray-500);
+}
+.no-results svg{width:48px;height:48px;color:var(--gray-300);margin-bottom:12px}
+.no-results p{font-size:14px;line-height:1.6}
+
+/* ── MAP ───────────────────────────────────────── */
+#map{flex:1;z-index:1;height:100%;min-height:400px}
+.gm-style .gm-style-iw-c{border-radius:var(--r)!important;padding:0!important;box-shadow:var(--shadow-lg)!important;}
+.gm-style .gm-style-iw-d{overflow:hidden!important;padding:12px!important;}
+.popup-name{font-family:'Montserrat',sans-serif;font-weight:800;font-size:14px;color:var(--blue-deep);margin-bottom:4px}
+.popup-loc{font-size:12px;color:var(--gray-500);margin-bottom:6px;}
+.popup-addr{font-size:11.5px;color:var(--gray-700);margin-bottom:8px;line-height:1.4}
+.popup-fuels{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:8px}
+.popup-actions{display:flex;gap:6px}
+.popup-btn{
+  flex:1;padding:7px 10px;border:none;border-radius:8px;font-size:11.5px;
+  font-weight:600;cursor:pointer;text-align:center;text-decoration:none;
+  display:flex;align-items:center;justify-content:center;gap:5px;
+}
+.popup-btn.maps{background:var(--blue-bright);color:white}
+.popup-btn.waze{background:#2BD1FC;color:#1a1a2e}
+.popup-btn.share{background:var(--gray-100);color:var(--gray-700);border:1px solid var(--gray-200)}
+
+/* User location marker */
+.user-marker-pulse{
+  width:20px;height:20px;background:var(--blue-bright);border:3px solid white;
+  border-radius:50%;box-shadow:0 0 0 6px rgba(37,99,235,.3);
+  animation:pulse 2s infinite;
+}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 4px rgba(37,99,235,.3)}50%{box-shadow:0 0 0 10px rgba(37,99,235,.1)}}
+
+/* Closest banner */
+#closest-banner{
+  position:absolute;bottom:20px;left:50%;transform:translateX(-50%);
+  background:white;border-radius:14px;box-shadow:var(--shadow-lg);
+  padding:10px 18px;display:none;align-items:center;gap:10px;z-index:999;
+  border:1px solid var(--gray-200);min-width:280px;max-width:400px;
+}
+#closest-banner.show{display:flex}
+.cb-icon{width:36px;height:36px;background:var(--green);border-radius:10px;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.cb-text{flex:1;min-width:0}
+.cb-title{font-size:10px;color:var(--gray-500);font-weight:600;letter-spacing:.5px;text-transform:uppercase}
+.cb-name{font-family:'Montserrat',sans-serif;font-weight:800;font-size:13px;color:var(--gray-900);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cb-dist{font-size:11px;color:var(--green);font-weight:600}
+.cb-nav{padding:8px 14px;background:var(--blue-bright);color:white;border:none;
+  border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;
+  font-family:'Montserrat',sans-serif;transition:.2s}
+.cb-nav:hover{background:var(--blue-mid)}
+
+/* Mobile adjustments */
+@media(max-width:768px){
+  .sidebar{width:100%;position:fixed;bottom:0;left:0;right:0;height:55vh;z-index:50;border-radius:20px 20px 0 0;border-top:1px solid var(--gray-200)}
+  .app-body{flex-direction:column}
+  #map{height:45vh}
+  .header-stats{display:none}
+  .logo-title{font-size:14px}
+  .vehicle-types{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px}
+  .vtype{min-width:90px;flex-shrink:0}
+}
+
+/* Loading overlay */
+#loading{
+  position:fixed;inset:0;background:var(--blue-deep);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  z-index:9999;transition:.5s opacity;
+}
+#loading.hidden{opacity:0;pointer-events:none}
+.spinner{
+  width:48px;height:48px;border:4px solid rgba(255,255,255,.2);
+  border-top-color:var(--gold);border-radius:50%;
+  animation:spin .8s linear infinite;margin-bottom:16px;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loading p{color:rgba(255,255,255,.8);font-size:14px;letter-spacing:.5px}
+#loading strong{color:white;font-family:'Montserrat',sans-serif;font-size:20px;
+  font-weight:900;letter-spacing:1.5px;margin-bottom:4px;display:block}
+
+/* Toast */
+.toast{
+  position:fixed;top:80px;right:20px;background:var(--gray-900);color:white;
+  padding:10px 16px;border-radius:10px;font-size:12px;z-index:9000;
+  opacity:0;transform:translateY(-10px);transition:.3s;pointer-events:none;
+  max-width:280px;line-height:1.4;
+}
+.toast.show{opacity:1;transform:translateY(0)}
+
+/* ── VEHICLE TYPES PANEL ─────────────────────────── */
+.vehicle-panel{
+  background:white;border-top:1px solid var(--gray-200);
+  padding:12px 14px;flex-shrink:0;
+}
+.vehicle-panel-title{
+  font-family:'Montserrat',sans-serif;font-weight:800;font-size:11px;
+  color:var(--blue-deep);letter-spacing:.8px;text-transform:uppercase;
+  display:flex;align-items:center;gap:6px;margin-bottom:8px;
+}
+.vehicle-panel-title svg{width:14px;height:14px;color:var(--gold)}
+.vehicle-types{display:flex;gap:6px;flex-wrap:wrap}
+.vtype{
+  display:flex;align-items:center;gap:6px;
+  background:var(--gray-50);border:1px solid var(--gray-200);
+  border-radius:10px;padding:5px 10px;flex:1;min-width:100px;
+  cursor:default;transition:.15s;
+}
+.vtype:hover{border-color:var(--blue-mid);background:var(--blue-light)}
+.vtype.active{border-color:var(--blue-bright);background:var(--blue-light);box-shadow:0 0 0 2px rgba(37,99,235,.2)}
+.vtype.active .vtype-name{color:var(--blue-bright)}
+.vtype-icon{
+  width:30px;height:30px;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.vtype-icon.light{background:#DBEAFE}
+.vtype-icon.van{background:#FEF3C7}
+.vtype-icon.truck{background:#FEE2E2}
+.vtype-icon.heavy{background:#ECFDF5}
+.vtype-text{display:flex;flex-direction:column;min-width:0}
+.vtype-name{font-family:'Montserrat',sans-serif;font-weight:700;font-size:11px;color:var(--gray-900);white-space:nowrap}
+.vtype-desc{font-size:9.5px;color:var(--gray-500);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* Traffic legend */
+.map-legend{
+  position:absolute;top:12px;right:12px;background:white;border-radius:10px;
+  padding:10px 14px;box-shadow:var(--shadow-md);z-index:500;font-size:11px;
+  border:1px solid var(--gray-200);
+}
+.map-legend h4{font-size:11px;font-weight:700;color:var(--gray-700);margin-bottom:6px;
+  text-transform:uppercase;letter-spacing:.5px;}
+.legend-item{display:flex;align-items:center;gap:6px;margin-bottom:3px;color:var(--gray-600)}
+.legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+
+/* Marker cluster-like styling via custom divIcon */
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="loading">
+  <div class="spinner"></div>
+  <strong>RESITER PERÚ</strong>
+  <p>Cargando estaciones de servicio…</p>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <div class="logo-icon">
+      <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="32" height="32" rx="6" fill="#0B2C6E"/>
+        <path d="M8 24V10C8 9.4 8.4 9 9 9H19C19.6 9 20 9.4 20 10V18H23V21C23 22.7 21.7 24 20 24H8Z" fill="#2563EB"/>
+        <path d="M9 12H19M9 15H19M9 18H14" stroke="#93C5FD" stroke-width="1.2" stroke-linecap="round"/>
+        <circle cx="13" cy="21" r="2" fill="#F59E0B"/>
+        <path d="M20 14V11C20 11 22 11 23 13V18H20V14Z" fill="#60A5FA"/>
+        <circle cx="20" cy="22" r="1.5" fill="#F59E0B"/>
+      </svg>
+    </div>
+    <div class="logo-text">
+      <span class="logo-title">RESITER PERÚ</span>
+      <span class="logo-sub">Abastecimientos</span>
+    </div>
+  </div>
+  <div class="header-stats">
+    <div class="stat-pill">📍 Lima: <b id="hd-lima">167</b></div>
+    <div class="stat-pill">🏔️ Provincias: <b id="hd-prov">213</b></div>
+    <div class="stat-pill">Total: <b id="hd-total">380</b></div>
+  </div>
+  <button class="gps-btn" onclick="locateUser()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M1 12h4M19 12h4"/></svg>
+    Mi Ubicación
+  </button>
+</header>
+
+<!-- APP BODY -->
+<div class="app-body">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+
+    <!-- Zone tabs -->
+    <div class="zone-tabs">
+      <button class="zone-tab active" id="tab-lima" onclick="switchZone('lima')">
+        📍 LIMA
+        <span class="tab-badge" id="badge-lima">167</span>
+      </button>
+      <button class="zone-tab" id="tab-prov" onclick="switchZone('prov')">
+        🏔️ PROVINCIAS
+        <span class="tab-badge" id="badge-prov">213</span>
+      </button>
+      <button class="zone-tab" id="tab-all" onclick="switchZone('all')">
+        🗺️ TODAS
+        <span class="tab-badge" id="badge-all">380</span>
+      </button>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters">
+      <div class="search-wrap">
+        <input type="text" id="search-input" placeholder="Buscar por nombre, dirección…" oninput="applyFilters()"/>
+        <span class="search-icon">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        </span>
+      </div>
+      <div class="filter-row">
+        <select class="filter-select" id="filter-dist" onchange="applyFilters()">
+          <option value="">Todos los distritos</option>
+        </select>
+        <select class="filter-select" id="filter-dept" onchange="onDeptChange()" style="display:none">
+          <option value="">Todos los depts.</option>
+        </select>
+        <select class="filter-select" id="filter-prov-sel" onchange="applyFilters()" style="display:none">
+          <option value="">Todas las provs.</option>
+        </select>
+      </div>
+      <div class="fuel-tags" id="fuel-tags">
+        <span class="fuel-tag" data-fuel="D2" onclick="toggleFuel(this)">D2</span>
+        <span class="fuel-tag" data-fuel="GR" onclick="toggleFuel(this)">GASOLINA</span>
+        <span class="fuel-tag" data-fuel="GP" onclick="toggleFuel(this)">GAS. PREMIUM</span>
+        <span class="fuel-tag" data-fuel="GLP" onclick="toggleFuel(this)">GLP</span>
+        <span class="fuel-tag" data-fuel="GNV" onclick="toggleFuel(this)">GNV</span>
+        <span class="fuel-tag" data-fuel="UREA" onclick="toggleFuel(this)">UREA</span>
+      </div>
+    </div>
+
+    <!-- Results header -->
+    <div class="results-header">
+      <span><span class="results-count" id="results-count">0</span> estaciones encontradas</span>
+      <span id="sort-label" style="cursor:pointer;color:var(--blue-bright);font-weight:600" onclick="toggleSort()">↕ Por distancia</span>
+    </div>
+
+    <!-- Station list -->
+    <div class="station-list" id="station-list"></div>
+
+    <!-- Vehicle filter panel -->
+    <div class="vehicle-panel">
+      <div class="vehicle-panel-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 3h15v13H1zM16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+        Filtrar por tipo de vehículo
+      </div>
+      <div class="vehicle-types">
+        <div class="vtype" data-vehicle="light" onclick="toggleVehicle(this)">
+          <div class="vtype-icon light">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1A4DB5" stroke-width="2"><rect x="1" y="8" width="15" height="9" rx="2"/><path d="M16 12h5l2 4H16"/><circle cx="5" cy="18" r="2"/><circle cx="18" cy="18" r="2"/></svg>
+          </div>
+          <div class="vtype-text">
+            <span class="vtype-name">Camionetas</span>
+            <span class="vtype-desc">Pick-up / SUV 4x4</span>
+          </div>
+        </div>
+        <div class="vtype" data-vehicle="van" onclick="toggleVehicle(this)">
+          <div class="vtype-icon van">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#92400E" stroke-width="2"><rect x="1" y="7" width="16" height="10" rx="2"/><path d="M17 10h4l2 4v3h-6"/><circle cx="5.5" cy="18" r="2"/><circle cx="19" cy="18" r="2"/></svg>
+          </div>
+          <div class="vtype-text">
+            <span class="vtype-name">Furgones</span>
+            <span class="vtype-desc">Furgón / Van / Minibus</span>
+          </div>
+        </div>
+        <div class="vtype" data-vehicle="truck" onclick="toggleVehicle(this)">
+          <div class="vtype-icon truck">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#991B1B" stroke-width="2"><rect x="1" y="5" width="13" height="12" rx="1"/><path d="M14 9h5l3 5v3H14V9z"/><circle cx="5" cy="19" r="2"/><circle cx="18" cy="19" r="2"/></svg>
+          </div>
+          <div class="vtype-text">
+            <span class="vtype-name">Camiones</span>
+            <span class="vtype-desc">Carga media / 2 ejes</span>
+          </div>
+        </div>
+        <div class="vtype" data-vehicle="heavy" onclick="toggleVehicle(this)">
+          <div class="vtype-icon heavy">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#065F46" stroke-width="2"><rect x="1" y="6" width="12" height="11" rx="1"/><path d="M13 9h6l3 4v4H13V9z"/><circle cx="4" cy="19" r="2"/><circle cx="10" cy="19" r="2"/><circle cx="18" cy="19" r="2"/></svg>
+          </div>
+          <div class="vtype-text">
+            <span class="vtype-name">Carga Pesada</span>
+            <span class="vtype-desc">Tráiler / Semi · solo R14</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAP -->
+  <div style="position:relative;flex:1;display:flex;flex-direction:column">
+    <div id="map" style="flex:1;min-height:400px"></div>
+
+    <!-- Map legend -->
+    <div class="map-legend">
+      <h4>Leyenda</h4>
+      <div class="legend-item"><div class="legend-dot" style="background:#1A4DB5"></div> Lima Metro.</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#D97706"></div> Provincia</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#10B981"></div> Más cercana</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#2563EB"></div> Mi ubicación</div>
+    </div>
+    <!-- GPS tip for mobile -->
+    <div id="gps-tip" style="position:absolute;bottom:70px;left:50%;transform:translateX(-50%);background:rgba(11,44,110,.9);color:white;border-radius:10px;padding:8px 14px;font-size:11px;text-align:center;z-index:500;display:none;max-width:280px;line-height:1.5">
+      📱 Para GPS en celular: abre este archivo desde Chrome → Menú → "Compartir" → y permite ubicación
+    </div>
+
+    <!-- Closest banner -->
+    <div id="closest-banner">
+      <div class="cb-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+      </div>
+      <div class="cb-text">
+        <div class="cb-title">Más cercano a ti</div>
+        <div class="cb-name" id="cb-name">—</div>
+        <div class="cb-dist" id="cb-dist">—</div>
+      </div>
+      <button class="cb-nav" id="cb-nav-btn">Ir →</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// DATA
+// ═══════════════════════════════════════════════════════════
+const LIMA_DATA = [{"id":1,"zona":"LIMA","distrito":"ATE","estacion":"Ate E","direccion":"Av. Víctor Raúl Haya de la Torre S/N ( Carretera central Km. 5.6) esq. Jr. Santa María","bandera":"EnergiGas","red":"Energigas","r14":"NO","combustibles":["D2","GR","GP","GLP","GNV"],"lat":-12.0278921,"lon":-76.9233061},{"id":2,"zona":"LIMA","distrito":"ATE","estacion":"Ate Gaspetrol","direccion":"Avenida Nicolas Ayllon N° 2237","bandera":"Gaspetrol","red":"Gaspetrol","r14":"NO","combustibles":["D2","GR","GP","GNV"],"lat":-12.0549646,"lon":-76.964168},{"id":3,"zona":"LIMA","distrito":"ATE","estacion":"Central","direccion":"Av. Víctor Raúl Haya de la Torre Nº 2970 esq. calle S. Sosa","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP"],"lat":-12.0575436,"lon":-76.9708334},{"id":4,"zona":"LIMA","distrito":"ATE","estacion":"ES Central","direccion":"Av. Nicolás Ayllón N° 4359","bandera":"Primax","red":"Abanderada","r14":"R14","combustibles":["D2","GR","GP","GLP"],"lat":-12.0427711,"lon":-76.936213},{"id":5,"zona":"LIMA","distrito":"ATE","estacion":"Graco","direccion":"Av. Separadora Industrial  Nº 2503","bandera":"Repsol","red":"Repsol","r14":"NO","combustibles":["D2","GR","GP","GLP","GNV"],"lat":-12.0600573,"lon":-76.9511721},{"id":6,"zona":"LIMA","distrito":"ATE","estacion":"La Molina","direccion":"Av. La Molina Nº 448 - Urb. El Artesano","bandera":"Repsol","red":"Repsol","r14":"NO","combustibles":["D2","GR","GP"],"lat":-12.0617901,"lon":-76.9614067},{"id":7,"zona":"LIMA","distrito":"ATE","estacion":"Los Sauces","direccion":"Av. Nicolás Ayllón Nº 1912 esq. Av. Las Torres","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP"],"lat":-12.0640346,"lon":-76.9867158},{"id":8,"zona":"LIMA","distrito":"ATE","estacion":"Mayorazgo","direccion":"Av. Separadora Industrial Nº 2985 - Urb. Mayorazgo","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP"],"lat":-12.053301,"lon":-76.9417596},{"id":9,"zona":"LIMA","distrito":"ATE","estacion":"Montecarlo","direccion":"Vía Evitamiento Lt. 1 al 6 - Urb. Los Parques de Monterrico","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP"],"lat":-12.0772567,"lon":-76.9759936},{"id":10,"zona":"LIMA","distrito":"ATE","estacion":"Pariachi","direccion":"Av. Nicolas Ayllon predio semi Pariachi parcela 10906","bandera":"Primax","red":"Abanderada","r14":"R14","combustibles":["D2","GR","GP","GNV"],"lat":-12.0060468,"lon":-76.8466588},{"id":11,"zona":"LIMA","distrito":"ATE","estacion":"Santa Ana","direccion":"Av. Nicolás Ayllón Nº 7176 Urb. Parcelación la Estrella","bandera":"Repsol","red":"Repsol","r14":"NO","combustibles":["D2","GR","GP","GLP","UREA"],"lat":-12.0167022,"lon":-76.8909641},{"id":12,"zona":"LIMA","distrito":"ATE","estacion":"Vista Alegre","direccion":"Avenida Nicolás Ayllón N° 4706","bandera":"Primax","red":"Abanderada","r14":"R14","combustibles":["D2","GR","GP","GNV"],"lat":-12.0375971,"lon":-76.931044},{"id":13,"zona":"LIMA","distrito":"BARRANCO","estacion":"Barranco Repsol","direccion":"Av. República de Panamá Nº 290","bandera":"Repsol","red":"Repsol","r14":"NO","combustibles":["D2","GR","GP"],"lat":-12.1390235,"lon":-77.0177319},{"id":14,"zona":"LIMA","distrito":"BELLAVISTA","estacion":"Gene","direccion":"Av. Oscar Benavides N° 4600 Urb. San Jose","bandera":"Repsol","red":"Repsol","r14":"NO","combustibles":["D2","GR","GP"],"lat":-12.0532816,"lon":-77.0954608},{"id":15,"zona":"LIMA","distrito":"BELLAVISTA","estacion":"Vigil Repsol","direccion":"Av. Almirante Grau N° 1300 esquina con calle Vigil N° 355","bandera":"Repsol","red":"Repsol","r14":"NO","combustibles":["D2","GR","GP"],"lat":-12.0613602,"lon":-77.1339049},{"id":16,"zona":"LIMA","distrito":"BREÑA","estacion":"Breña","direccion":"Av. Venezuela N° 1315","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP"],"lat":-12.0556615,"lon":-77.0526084},{"id":17,"zona":"LIMA","distrito":"BREÑA","estacion":"Huaraz","direccion":"Jr. Huaraz N° 1484 esquina Jr. Restauración","bandera":"Gaspetrol","red":"Gaspetrol","r14":"NO","combustibles":["D2","GR","GP","GLP","GNV"],"lat":-12.0641957,"lon":-77.0487736},{"id":18,"zona":"LIMA","distrito":"CALLAO","estacion":"Argentina H","direccion":"Av. Argentina N° 2045","bandera":"Herco","red":"Herco","r14":"R14","combustibles":["D2","GR","GP","GLP"],"lat":-12.0501745,"lon":-77.1213459},{"id":19,"zona":"LIMA","distrito":"CALLAO","estacion":"Argentina Oncap","direccion":"Av. Argentina N° 1375","bandera":"Primax","red":"Abanderada","r14":"R14","combustibles":["D2","GR","GP"],"lat":-12.0505376,"lon":-77.1274952},{"id":20,"zona":"LIMA","distrito":"CALLAO","estacion":"Callao","direccion":"Av. Guardia Chalaca N° 1462 Urb. Santa Marina","bandera":"EnergiGas","red":"Energigas","r14":"R14","combustibles":["D2","GR","GP","GLP","GNV"],"lat":-12.0587803,"lon":-77.1285439},{"id":21,"zona":"LIMA","distrito":"CALLAO","estacion":"Cantolao","direccion":"Av. Faucett N° 6000","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP","GNV"],"lat":-11.9976292,"lon":-77.1241382},{"id":22,"zona":"LIMA","distrito":"CALLAO","estacion":"Centenario","direccion":"Av. Argentina esq. Av. Néstor Gambeta","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP"],"lat":-12.0504008,"lon":-77.1260887},{"id":23,"zona":"LIMA","distrito":"CALLAO","estacion":"Contralmirante Mora","direccion":"Av. Contralmirante Mora N° 299","bandera":"Sin Bandera","red":"Abanderada","r14":"R14","combustibles":["D2","GR","GP"],"lat":-12.0484873,"lon":-77.134993},{"id":24,"zona":"LIMA","distrito":"CALLAO","estacion":"Elaion","direccion":"Av. Argentina Nº 2920","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP"],"lat":-12.0498576,"lon":-77.1137729},{"id":25,"zona":"LIMA","distrito":"CALLAO","estacion":"El Puerto","direccion":"Avenida Argentina N° 333 cruce con Jr. Huascar N° 102","bandera":"Petroamerica","red":"Petroamerica","r14":"R14","combustibles":["D2","GR","GP","GLP"],"lat":-12.0514782,"lon":-77.1383951},{"id":26,"zona":"LIMA","distrito":"CALLAO","estacion":"Gambeta","direccion":"Av. Néstor Gambeta Nº 1295","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP"],"lat":-12.0381407,"lon":-77.1272106},{"id":27,"zona":"LIMA","distrito":"CALLAO","estacion":"Gambeta H","direccion":"Av. Néstor Gambeta Km. 14.5 Ex Fundo Márquez","bandera":"Herco","red":"Herco","r14":"R14","combustibles":["D2","GR","GP","GLP"],"lat":-11.9381095,"lon":-77.1305948},{"id":28,"zona":"LIMA","distrito":"CALLAO","estacion":"La Reserva","direccion":"Av. Néstor Gambeta Km. 14.50","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP","GLP"],"lat":-11.9415907,"lon":-77.1310201},{"id":29,"zona":"LIMA","distrito":"CALLAO","estacion":"Loayza","direccion":"Av. Tomás Valle esq. Av. Los Dominicos","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP"],"lat":-12.0141289,"lon":-77.0949336},{"id":30,"zona":"LIMA","distrito":"CALLAO","estacion":"Neuquen","direccion":"Av. Elmer Faucett Nº 377","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP","GLP"],"lat":-12.0499378,"lon":-77.0984848},{"id":31,"zona":"LIMA","distrito":"CALLAO","estacion":"Revoredo","direccion":"Av. Elmer Faucett Nº 2900","bandera":"Repsol","red":"Repsol","r14":"NO","combustibles":["D2","GR","GP","GLP","GNV"],"lat":-12.0276952,"lon":-77.1028271},{"id":32,"zona":"LIMA","distrito":"CALLAO","estacion":"Tomas Valle","direccion":"Avenida Tomas Valle cruce con Avenida Pacasmayo","bandera":"Petroamerica","red":"Petroamerica","r14":"NO","combustibles":["D2","GR","GP","GLP"],"lat":-12.0175403,"lon":-77.098315},{"id":33,"zona":"LIMA","distrito":"CALLAO","estacion":"Titas","direccion":"Jirón Venezuela N° 1242","bandera":"Petroamerica","red":"Petroamerica","r14":"NO","combustibles":["D2","GR","GP"],"lat":-12.0520087,"lon":-77.138393},{"id":34,"zona":"LIMA","distrito":"CARABAYLLO","estacion":"Aero San Antonio","direccion":"Av. José Saco Rojas Mz A6","bandera":"Repsol","red":"Aero Gas del Norte","r14":"R14","combustibles":["D2","GR","GP"],"lat":-11.8593396,"lon":-77.0480661},{"id":36,"zona":"LIMA","distrito":"CARABAYLLO","estacion":"GO! Carabayllo","direccion":"Mz A Lotes 65 66, Urbanización Tungasuca","bandera":"Go","red":"Consorcio Grifos","r14":"NO","combustibles":["D2","GR","GP"],"lat":-11.8964414,"lon":-77.0477888},{"id":37,"zona":"LIMA","distrito":"CARABAYLLO","estacion":"Santa Rosa","direccion":"Av. Túpac Amaru Km. 16.5","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP","GLP"],"lat":-11.9018352,"lon":-77.0303884},{"id":38,"zona":"LIMA","distrito":"CHACLACAYO","estacion":"Laravil","direccion":"Av. Nicolás Ayllón Nº 2274 - Santa Inés","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP"],"lat":-11.9709671,"lon":-76.75345},{"id":39,"zona":"LIMA","distrito":"CHORRILLOS","estacion":"Cebotto","direccion":"Av. Guardia Civil Nº 709 esq. Av. El Sol","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP"],"lat":-12.1779465,"lon":-76.9961652},{"id":40,"zona":"LIMA","distrito":"CHORRILLOS","estacion":"GO! El Sol","direccion":"Av. Guardia Civil esq. Av. El Sol","bandera":"Go","red":"Consorcio Grifos","r14":"NO","combustibles":["D2","GR","GP","GLP","GNV"],"lat":-12.1785376,"lon":-76.9960163},{"id":41,"zona":"LIMA","distrito":"CHORRILLOS","estacion":"La Encantada Repsol","direccion":"Av. Defensores del Morro N° 2671","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP"],"lat":-12.1833769,"lon":-77.009164},{"id":42,"zona":"LIMA","distrito":"CHORRILLOS","estacion":"Cedros de Villa","direccion":"Av. Alameda Sur Nº 597 - Mz. C3 Lt. 01-D","bandera":"Repsol","red":"Repsol","r14":"NO","combustibles":["D2","GR","GP"],"lat":-12.1966312,"lon":-77.0107016},{"id":43,"zona":"LIMA","distrito":"CHORRILLOS","estacion":"Tronco Firme","direccion":"Av. Prolongación Huaylas Nº 326","bandera":"Repsol","red":"Repsol","r14":"NO","combustibles":["D2","GR","GP"],"lat":-12.1941077,"lon":-77.0026097},{"id":44,"zona":"LIMA","distrito":"COMAS","estacion":"Trapiche","direccion":"Av. Heroes Alto Cenepa - Ex Fundo Chacra Cerro","bandera":"Repsol","red":"Aero Gas del Norte","r14":"R14","combustibles":["D2","GR","GP"],"lat":-11.9289307,"lon":-77.0678842},{"id":45,"zona":"LIMA","distrito":"EL AGUSTINO","estacion":"San Francisco","direccion":"Av. 1 de Mayo Nº 3090 - Cooperativa Huancayo","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP","GLP"],"lat":-12.0299386,"lon":-76.9989569},{"id":46,"zona":"LIMA","distrito":"INDEPENDENCIA","estacion":"Comas","direccion":"Av. Izaguirre esq. Gerardo Unger Nº 3689","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP"],"lat":-11.9890946,"lon":-77.0574175},{"id":47,"zona":"LIMA","distrito":"INDEPENDENCIA","estacion":"Sol de Oro","direccion":"Av. Alfredo Mendiola N° 3550","bandera":"Primax","red":"Abanderada","r14":"R14","combustibles":["D2","GR","GP","GLP"],"lat":-11.9971474,"lon":-77.0624967},{"id":48,"zona":"LIMA","distrito":"INDEPENDENCIA","estacion":"Super Repsol","direccion":"Av. Alfredo Mendiola Nº 2000","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP"],"lat":-12.0058652,"lon":-77.0612812},{"id":49,"zona":"LIMA","distrito":"JESÚS MARÍA","estacion":"Brasil","direccion":"Avenida Brasil N° 699","bandera":"Petroamerica","red":"Petroamerica","r14":"NO","combustibles":["D2","GR","GP","GLP"],"lat":-12.0662923,"lon":-77.0462392},{"id":50,"zona":"LIMA","distrito":"JESÚS MARÍA","estacion":"Rapuzzi","direccion":"Av. Domingo Cueto s/n esq. Av. Fernando Regalado","bandera":"Herco","red":"Herco","r14":"NO","combustibles":["D2","GR","GP"],"lat":-12.080271,"lon":-77.0392959},{"id":51,"zona":"LIMA","distrito":"JESÚS MARÍA","estacion":"Sarmiento","direccion":"Av. Arenales Nº 400 esq. Av. República de Chile","bandera":"Repsol","red":"Repsol","r14":"NO","combustibles":["D2","GR","GP"],"lat":-12.0685829,"lon":-77.0379996},{"id":52,"zona":"LIMA","distrito":"LA MOLINA","estacion":"El Sauce","direccion":"Av. La Molina Nº 2880 - Urb. El Sauce","bandera":"Repsol","red":"Repsol","r14":"NO","combustibles":["D2","GR","GP"],"lat":-12.0836988,"lon":-76.927598},{"id":53,"zona":"LIMA","distrito":"LA MOLINA","estacion":"Javier Prado E","direccion":"Av. Javier Prado Este Nº 5411","bandera":"EnergiGas","red":"Energigas","r14":"NO","combustibles":["D2","GR","GP","GLP","GNV"],"lat":-12.0743702,"lon":-76.9627053},{"id":54,"zona":"LIMA","distrito":"LA MOLINA","estacion":"La Rotonda","direccion":"Av. La Molina N° 1310","bandera":"Repsol","red":"Repsol","r14":"NO","combustibles":["D2","GR","GP"],"lat":-12.0751765,"lon":-76.9550466},{"id":55,"zona":"LIMA","distrito":"LA MOLINA","estacion":"Molina","direccion":"Av. La Molina Este N° 1595","bandera":"Primax","red":"Abanderada","r14":"NO","combustibles":["D2","GR","GP","GLP"],"lat":-12.0859427,"lon":-76.9017213},{"id":56,"zona":"LIMA","distrito":"LA MOLINA","estacion":"Saimon","direccion":"Av. Raúl Ferrero Nº 1313 - Urb. Sirius II Etapa","bandera":"Repsol","red":"Repsol","r14":"NO","combustibles":["D2","GR","GP"],"lat":-12.0909217,"lon":-76.9512359},{"id":57,"zona":"LIMA","distrito":"LA MOLINA","estacion":"Stop","direccion":"Av. Javier Prado Nº 5323 - Residencial Monterrico","bandera":"Repsol","red":"Repsol","r14":"NO","combustibles":["D2","GR","GP"],"lat":-12.075183,"lon":-76.9634855},{"id":58,"zona":"LIMA","distrito":"LA PERLA","estacion":"GO! La Perla","direccion":"Av. José Gálvez Mz. 1 Lt. 1 esq. Jr. Tarata N° 102","bandera":"Go","red":"Consorcio Grifos","r14":"NO","combustibles":["D2","GR","GP"],"lat":-12.066103,"lon":-77.1224975},{"id":59,"zona":"LIMA","distrito":"LA VICTORIA","estacion":"Grau 2","direccion":"Av. Paseo de la República Nº 301","bandera":"Repsol","red":"Repsol","r14":"NO","combustibles":["D2","GR","GP"],"lat":-12.0603825,"lon":-77.0353184},{"id":60,"zona":"LIMA","distrito":"LA VICTORIA","estacion":"Iquitos","direccion":"Av. Iquitos N° 1100","bandera":"Repsol","red":"Repsol","r14":"NO","combustibles":["D2","GR","GP","GNV"],"lat":-12.0716866,"lon":-77.0299083},{"id":61,"zona":"LIMA","distrito":"LA VICTORIA","estacion":"La Victoria 1","direccion":"Av. Manco Cápac Nº 993 esq. Av. Isabel La Católica","bandera":"EnergiGas","red":"Energigas","r14":"NO","combustibles":["D2","GR","GP","GLP"],"lat":-12.0701654,"lon":-77.0283345},{"id":62,"zona":"LIMA","distrito":"LA VICTORIA","estacion":"Lebar","direccion":"Av. Nicolás Arriola esq. Av. Javier Prado","bandera":"Repsol","red":"Repsol","r14":"NO","combustibles":["D2","GR","GP"],"lat":-12.0897294,"lon":-77.0179977},{"id":63,"zona":"LIMA","distrito":"LA VICTORIA","estacion":"GO! Manco Capac","direccion":"Av. Manco Cápac N° 693","bandera":"Go","red":"Consorcio Grifos","r14":"NO","combustibles":["D2","GR","GP","GLP","GNV"],"lat":-12.0670679,"lon":-77.0285463},{"id":64,"zona":"LIMA","distrito":"LA VICTORIA","estacion":"Master Gas","direccion":"Av. Mexico N° 380","bandera":"Sin Bandera","red":"Sin Bandera","r14":"NO","combustibles":["D2","GR","GP"],"lat":-12.0758328,"lon":-77.02573},{"id":65,"zona":"LIMA","distrito":"LA VICTORIA","estacion":"Mexico Repsol","direccion":"Av. Mexico N° 1291","bandera":"Repsol","red":"Repsol","r14":"NO","combustibles":["D2","GR","GP"],"lat":-12.0731045,"lon":-77.0166829},{"id":66,"zona":"LIMA","distrito":"LA VICTORIA","estacion":"GO! Titi","direccion":"Av. Pablo Patrón esq. Av. San Luis - Urb. San Pablo","bandera":"Go","red":"Consorcio Grifos","r14":"NO","combustibles":["D2","GR","GP","GLP","GNV"],"lat":-12.070755,"lon":-77.0034728},{"id":67,"zona":"LIMA","distrito":"LIMA","estacion":"Arenales R","direccion":"Av. Arenales N° 881","bandera":"Repsol","red":"Repsol","r14":"NO","combustibles":["D2","GR","GP"],"lat":-12.0733543,"lon":-77.03715},{"id":68,"zona":"LIMA","distrito":"LIMA","estacion":"Argentina","direccion":"Av. Argentina Nº 1830 esq. Av. Nicolás Dueñas","bandera":"EnergiGas","red":"Energigas","r14":"R14","combustibles":["D2","GR","GP","GLP","GNV"],"lat":-12.0453067,"lon":-77.0654292},{"id":69,"zona":"LIMA","distrito":"LIMA","estacion":"Argentina 2","direccion":"Av. Argentina Nº 3003-3005","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP"],"lat":-12.0467996,"lon":-77.0795843},{"id":70,"zona":"LIMA","distrito":"LIMA","estacion":"Arrieta","direccion":"Av. Argentina Nº 2501 esq. Leonardo Arrieta","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP","GLP"],"lat":-12.0463683,"lon":-77.0724697},{"id":71,"zona":"LIMA","distrito":"LIMA","estacion":"Barrios Altos","direccion":"Jr. Sebastian Lorente N° 698","bandera":"Petroamerica","red":"Petroamerica","r14":"NO","combustibles":["D2","GR","GP"],"lat":-12.0491871,"lon":-77.0127878},{"id":72,"zona":"LIMA","distrito":"LIMA","estacion":"GO! Petit Thouars","direccion":"Jr. Enrique Villar  Nº 316","bandera":"Go","red":"Consorcio Grifos","r14":"NO","combustibles":["D2","GR","GP","GLP"],"lat":-12.0767581,"lon":-77.0344671},{"id":73,"zona":"LIMA","distrito":"LIMA","estacion":"Colonial 1","direccion":"Av. Oscar R. Benavides Nº1817-1821","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP"],"lat":-12.048624,"lon":-77.064959},{"id":74,"zona":"LIMA","distrito":"LIMA","estacion":"Colonial 2","direccion":"Av. Oscar R. Benavides Nº 140","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP","GLP"],"lat":-12.046439,"lon":-77.0439936},{"id":75,"zona":"LIMA","distrito":"LIMA","estacion":"Colonial A","direccion":"Av. Colonial N° 930","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP","GLP"],"lat":-12.0474109,"lon":-77.0534844},{"id":76,"zona":"LIMA","distrito":"LIMA","estacion":"Dueñas","direccion":"Av. Nicolás Dueñas N° 606 - Cercado de Lima","bandera":"Repsol","red":"Repsol","r14":"NO","combustibles":["D2","GR","GP","GLP","GNV"],"lat":-12.0422767,"lon":-77.0657785},{"id":77,"zona":"LIMA","distrito":"LIMA","estacion":"ES Arequipa","direccion":"Av. Arequipa N° 900","bandera":"Primax","red":"Abanderada","r14":"NO","combustibles":["D2","GR","GP","GLP","GNV"],"lat":-12.0736499,"lon":-77.0364398},{"id":78,"zona":"LIMA","distrito":"LIMA","estacion":"Monumental","direccion":"Av. Venezuela Nº 1816 esq. Av. Tingo María y Naciones Unidas","bandera":"Repsol","red":"Repsol","r14":"NO","combustibles":["D2","GR","GP","GLP"],"lat":-12.0557552,"lon":-77.0582458},{"id":79,"zona":"LIMA","distrito":"LIMA","estacion":"GO! Shalom","direccion":"Av. Naciones Unidas N° 1222 - Chacra Rios Norte","bandera":"Go","red":"Consorcio Grifos","r14":"NO","combustibles":["D2","GR","GP","GLP","GNV"],"lat":-12.0492507,"lon":-77.0597132},{"id":80,"zona":"LIMA","distrito":"LIMA","estacion":"Universitaria 2","direccion":"Calle Materiales Nº 150 - 154","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP"],"lat":-12.0427781,"lon":-77.0770746},{"id":81,"zona":"LIMA","distrito":"LIMA","estacion":"Venezuela","direccion":"Av. Venezuela N° 2180 esq. Jr. Yungay","bandera":"EnergiGas","red":"Energigas","r14":"NO","combustibles":["D2","GR","GP","GLP","GNV"],"lat":-12.0563885,"lon":-77.0624482},{"id":82,"zona":"LIMA","distrito":"LIMA","estacion":"Zorritos","direccion":"Av. Zorritos S/N. Esq. Miguel Baquero N°498","bandera":"Primax","red":"Abanderada","r14":"NO","combustibles":["D2","GR","GP"],"lat":-12.0501889,"lon":-77.0468702},{"id":83,"zona":"LIMA","distrito":"LINCE","estacion":"GO! Pardo","direccion":"Av. Juan Pardo de Zela N° 845 - 849 esq. Pasaje San Roberto","bandera":"Go","red":"Consorcio Grifos","r14":"NO","combustibles":["D2","GR","GP"],"lat":-12.0823814,"lon":-77.027664},{"id":84,"zona":"LIMA","distrito":"LOS OLIVOS","estacion":"Go! Universitaria","direccion":"Av. Universitaria Norte Mz. C Lt. 1 Urb. Residencial Comercial","bandera":"Go","red":"Consorcio Grifos","r14":"R14","combustibles":["D2","GR","GP","GLP","GNV"],"lat":-11.9957471,"lon":-77.0838962},{"id":85,"zona":"LIMA","distrito":"LURIGANCHO","estacion":"Go! Priale","direccion":"Autopista Ramiro Prialé Km. 8.5 esq. Av. Huachipa","bandera":"Go","red":"Consorcio Grifos","r14":"R14","combustibles":["D2","GR","GP","GLP","UREA"],"lat":-12.0179781,"lon":-76.911079},{"id":86,"zona":"LIMA","distrito":"LURIGANCHO","estacion":"Picorp Priale","direccion":"Avenida Los Cisnes sub lote 2, parcela Paraiso","bandera":"Sin Bandera","red":"Independiente","r14":"R14","combustibles":["D2","GR","GP","GLP","GNV"],"lat":-12.0195058,"lon":-76.9493301},{"id":87,"zona":"LIMA","distrito":"LURIGANCHO","estacion":"Susoli","direccion":"Av. Chosica - Carretera Cajamarquilla, Parcela 89 Lt. 89B - Urb. Cajamarquilla","bandera":"Petroperú","red":"Abanderada","r14":"R14","combustibles":["D2","GR","GP"],"lat":-11.9835044,"lon":-76.8933902},{"id":88,"zona":"LIMA","distrito":"LURIGANCHO","estacion":"Torito","direccion":"Av. Ramiro Prialé Cod. Predio/Parcela l, Sub Lt. 28-b, Sub Lt. 23","bandera":"Pecsa","red":"Abanderada","r14":"R14","combustibles":["D2","GR","GP","GLP","GNV"],"lat":-12.0200106,"lon":-76.9215624},{"id":89,"zona":"LIMA","distrito":"LURÍN","estacion":"Lurin","direccion":"Antigua Panamericana Sur Km. 34.5","bandera":"EnergiGas","red":"Energigas","r14":"R14","combustibles":["D2","GR","GP","GLP","GNV"],"lat":-12.2654793,"lon":-76.8799553},{"id":90,"zona":"LIMA","distrito":"LURÍN","estacion":"Lurin H","direccion":"Carretera Panamericana Sur Km. 33.5","bandera":"Herco","red":"Herco","r14":"R14","combustibles":["D2","GR","GP","GLP"],"lat":-12.2921681,"lon":-76.8632766},{"id":91,"zona":"LIMA","distrito":"LURÍN","estacion":"Perlita","direccion":"Antigua Panamericana Sur Km. 36 Ex Fundo San Vicente","bandera":"Repsol","red":"Abanderada","r14":"R14","combustibles":["D2","GR","GP"],"lat":-12.2734023,"lon":-76.872625},{"id":92,"zona":"LIMA","distrito":"LURÍN","estacion":"GO! Pulpos","direccion":"Carretera Antigua Panamericana Sur Km 41 Mz G1 Lt 5,6","bandera":"Go","red":"Consorcio Grifos","r14":"NO","combustibles":["D2","GR","GP","GLP"],"lat":-12.3070088,"lon":-76.8392377},{"id":93,"zona":"LIMA","distrito":"MAGDALENA","estacion":"Brasil ES","direccion":"Av. El Ejercito N° 110 - 112","bandera":"Primax","red":"Abanderada","r14":"NO","combustibles":["D2","GR","GP"],"lat":-12.0972831,"lon":-77.0717904},{"id":94,"zona":"LIMA","distrito":"MIRAFLORES","estacion":"6 de Agosto","direccion":"Av. Del Ejército N° 1295","bandera":"Repsol","red":"Repsol","r14":"NO","combustibles":["D2","GR","GP"],"lat":-12.110327,"lon":-77.051392},{"id":95,"zona":"LIMA","distrito":"MIRAFLORES","estacion":"Arequipa","direccion":"Av. Arequipa Nº 5080 esq. Enrique Palacios","bandera":"Repsol","red":"Repsol","r14":"NO","combustibles":["D2","GR","GP"],"lat":-12.1167464,"lon":-77.0294117},{"id":96,"zona":"LIMA","distrito":"MIRAFLORES","estacion":"Aurora","direccion":"Av. Benavides Esq. Av. Republica de Panamá","bandera":"Repsol","red":"Repsol","r14":"NO","combustibles":["D2","GR","GP"],"lat":-12.1259279,"lon":-77.018372},{"id":97,"zona":"LIMA","distrito":"MIRAFLORES","estacion":"Benavides H","direccion":"Av. Alfredo Benavides Cdra. 21 - N° S/N Urb. El Rosal","bandera":"Repsol","red":"Herco","r14":"NO","combustibles":["D2","GR","GP"],"lat":-12.1274491,"lon":-77.0105198},{"id":98,"zona":"LIMA","distrito":"MIRAFLORES","estacion":"El Rosedal","direccion":"Av. República de Panamá Nº 6491 - Urb. San Antonio","bandera":"Repsol","red":"Repsol","r14":"NO","combustibles":["D2","GR","GP"],"lat":-12.1304182,"lon":-77.0179151},{"id":99,"zona":"LIMA","distrito":"MIRAFLORES","estacion":"Independencia","direccion":"Av. Angamos Este Nº 494 - 498","bandera":"Repsol","red":"Repsol","r14":"NO","combustibles":["D2","GR","GP"],"lat":-12.1135669,"lon":-77.0264152},{"id":100,"zona":"LIMA","distrito":"MIRAFLORES","estacion":"Miraflores","direccion":"Av. República de Panamá Nº 5690 esq. Av. Roca y Bologna","bandera":"Repsol","red":"Repsol","r14":"NO","combustibles":["D2","GR","GP"],"lat":-12.1204987,"lon":-77.0183067},{"id":101,"zona":"LIMA","distrito":"MIRAFLORES","estacion":"Parque Mora","direccion":"Av. Angamos Oeste N° 1685","bandera":"Repsol","red":"Repsol","r14":"NO","combustibles":["D2","GR","GP"],"lat":-12.1106562,"lon":-77.0465434},{"id":102,"zona":"LIMA","distrito":"MIRAFLORES","estacion":"Reducto","direccion":"Av. 28 de Julio esq. Av. Reducto","bandera":"Repsol","red":"Repsol","r14":"NO","combustibles":["D2","GR","GP"],"lat":-12.1293208,"lon":-77.0235551},{"id":103,"zona":"LIMA","distrito":"MIRAFLORES","estacion":"Santa Maria","direccion":"Av. Del Ejército Nº 290","bandera":"Repsol","red":"Repsol","r14":"NO","combustibles":["D2","GR","GP"],"lat":-12.1175731,"lon":-77.0441931},{"id":104,"zona":"LIMA","distrito":"MIRAFLORES","estacion":"Tenaud","direccion":"Av. Arequipa Nº 4305 esq. Carlos Tenaud","bandera":"Repsol","red":"Repsol","r14":"NO","combustibles":["D2","GR","GP"],"lat":-12.1088913,"lon":-77.0305683},{"id":105,"zona":"LIMA","distrito":"PACHACAMAC","estacion":"Chepen","direccion":"Av. Lima esquina con Calle La Paz","bandera":"Repsol","red":"Repsol","r14":"NO","combustibles":["D2","GR","GP"],"lat":-12.2385181,"lon":-76.9129153},{"id":106,"zona":"LIMA","distrito":"PUCUSANA","estacion":"Escorpio","direccion":"Carretera Panamericana Sur Km. 57 Predio Comunal Chutana Pampa Patita","bandera":"Primax","red":"Abanderada","r14":"R14","combustibles":["D2","GR","GP","UREA"],"lat":-12.4602677,"lon":-76.7533496},{"id":107,"zona":"LIMA","distrito":"PUCUSANA","estacion":"Pucusana","direccion":"Carretera Panamericana Sur Km. 56.80","bandera":"Petroamérica","red":"Petroamérica","r14":"R14","combustibles":["D2","GR","GP","GLP"],"lat":-12.4532914,"lon":-76.7554865},{"id":108,"zona":"LIMA","distrito":"PUEBLO LIBRE","estacion":"Bolivar 2","direccion":"Av. Bolívar esq. Av. Del Río - Urb. Bahía","bandera":"Repsol","red":"Repsol","r14":"NO","combustibles":["D2","GR","GP"],"lat":-12.0733203,"lon":-77.0560235},{"id":109,"zona":"LIMA","distrito":"PUEBLO LIBRE","estacion":"La Marina 1","direccion":"Av. La Marina N° 325 Esq. Jr. Torre Tagle","bandera":"Repsol","red":"Repsol","r14":"NO","combustibles":["D2","GR","GP"],"lat":-12.0845767,"lon":-77.0648162},{"id":110,"zona":"LIMA","distrito":"PUEBLO LIBRE","estacion":"La Marina E","direccion":"Av. La Marina N° 589","bandera":"EnergiGas","red":"Energigas","r14":"NO","combustibles":["D2","GR","GP","GLP","GNV"],"lat":-12.0833827,"lon":-77.0672095},{"id":111,"zona":"LIMA","distrito":"PUENTE PIEDRA","estacion":"Copacabana H","direccion":"Carretera Néstor Gambeta esq. Calle Copacabana Lotización Semirústica Leoncio Prado","bandera":"Herco","red":"Herco","r14":"R14","combustibles":["D2","GR","GP","GLP"],"lat":-11.8409009,"lon":-77.1143992},{"id":113,"zona":"LIMA","distrito":"PUENTE PIEDRA","estacion":"Los Gramadales","direccion":"Carretera Panamericana Norte Km. 32","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP"],"lat":-11.8532112,"lon":-77.0889703},{"id":114,"zona":"LIMA","distrito":"PUENTE PIEDRA","estacion":"Mega Norte","direccion":"Carretera Panamericana Norte Km. 32","bandera":"Repsol","red":"Abanderada","r14":"R14","combustibles":["D2","GR","GP","GLP"],"lat":-11.8553357,"lon":-77.085999},{"id":115,"zona":"LIMA","distrito":"PUENTE PIEDRA","estacion":"Puente Piedra","direccion":"Carretera Panamericana Norte Km. 29.5","bandera":"EnergiGas","red":"Energigas","r14":"R14","combustibles":["D2","GR","GP","GLP"],"lat":-11.8718512,"lon":-77.0702266},{"id":116,"zona":"LIMA","distrito":"PUENTE PIEDRA","estacion":"Puente Piedra Petroamerica","direccion":"Carretera Panamericana Norte Km. 36.5","bandera":"Petroamerica","red":"Petroamerica","r14":"R14","combustibles":["D2","GR","GP","GLP"],"lat":-11.8297565,"lon":-77.1176591},{"id":117,"zona":"LIMA","distrito":"PUENTE PIEDRA","estacion":"San Carlos","direccion":"Carretera Panamericana Norte Km. 28.5","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP"],"lat":-11.8826866,"lon":-77.0682936},{"id":118,"zona":"LIMA","distrito":"RÍMAC","estacion":"GO! Pizarro","direccion":"Av. Francisco Pizarro Nº 810 - Urb. Villacampa","bandera":"Go","red":"Consorcio Grifos","r14":"R14","combustibles":["D2","GR","GP","GLP"],"lat":-12.0335679,"lon":-77.0389128},{"id":119,"zona":"LIMA","distrito":"RÍMAC","estacion":"San Cristobal","direccion":"Av. 9 Octubre Nº 101 - Piedra Liza","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP"],"lat":-12.039019,"lon":-77.0156681},{"id":120,"zona":"LIMA","distrito":"SAN BARTOLO","estacion":"San Bartolo","direccion":"Antigua Carretera Panamericana Sur Km 51.8","bandera":"Petroamerica","red":"Petroamerica","r14":"R14","combustibles":["D2","GR","GP"],"lat":-12.383824,"lon":-76.7745209},{"id":121,"zona":"LIMA","distrito":"SAN BORJA","estacion":"Angamos","direccion":"Av. Primavera N° 1095 Esquina con calle Canarias","bandera":"Repsol","red":"Repsol","r14":"NO","combustibles":["D2","GR","GP"],"lat":-12.1101403,"lon":-76.9796321},{"id":122,"zona":"LIMA","distrito":"SAN BORJA","estacion":"El Avion","direccion":"Av. Aviación N° 3401","bandera":"Repsol","red":"Repsol","r14":"NO","combustibles":["D2","GR","GP"],"lat":-12.1053479,"lon":-77.0008933},{"id":123,"zona":"LIMA","distrito":"SAN BORJA","estacion":"San Borja","direccion":"Av. Javier Prado Este N° 3160 Urb. San Borja","bandera":"Repsol","red":"Repsol","r14":"NO","combustibles":["D2","GR","GP"],"lat":-12.086697,"lon":-76.9919996},{"id":124,"zona":"LIMA","distrito":"SAN ISIDRO","estacion":"Bela","direccion":"Av Petit Thouars N° 3929","bandera":"Primax","red":"Abanderada","r14":"NO","combustibles":["D2","GR","GP"],"lat":-12.1011503,"lon":-77.0308004},{"id":126,"zona":"LIMA","distrito":"SAN ISIDRO","estacion":"Go! Panama","direccion":"Avenida Republica de Panama S/N Cuadra 32","bandera":"Go","red":"Go","r14":"NO","combustibles":["D2","GR","GP"],"lat":-12.0963178,"lon":-77.0208136},{"id":127,"zona":"LIMA","distrito":"SAN ISIDRO","estacion":"El Parque","direccion":"Av. Guardia Civil Nº 1090","bandera":"Repsol","red":"Repsol","r14":"NO","combustibles":["D2","GR","GP","GLP"],"lat":-12.1028113,"lon":-77.0149556},{"id":128,"zona":"LIMA","distrito":"SAN ISIDRO","estacion":"Parodi","direccion":"Pasaje Parodi Nº 220 esq. Javier Prado","bandera":"Repsol","red":"Repsol","r14":"NO","combustibles":["D2","GR","GP"],"lat":-12.0918035,"lon":-77.0304218},{"id":129,"zona":"LIMA","distrito":"SAN ISIDRO","estacion":"Parque Sur","direccion":"Av. Guardia Civil N° 1109 esquina con Av. Parque Sur","bandera":"Repsol","red":"Repsol","r14":"NO","combustibles":["D2","GR","GP"],"lat":-12.1035765,"lon":-77.0148146},{"id":130,"zona":"LIMA","distrito":"SAN ISIDRO","estacion":"San Isidro","direccion":"Avenida Petit Thouars ° 3305 - 3307","bandera":"Petroamerica","red":"Petroamerica","r14":"NO","combustibles":["D2","GR","GP","GLP"],"lat":-12.0955771,"lon":-77.0315267},{"id":131,"zona":"LIMA","distrito":"SAN ISIDRO","estacion":"Tiki Oncap","direccion":"Av. José Gálvez Barrenechea Nº 520","bandera":"Primax","red":"Abanderada","r14":"NO","combustibles":["D2","GR","GP"],"lat":-12.0972079,"lon":-77.0130113},{"id":132,"zona":"LIMA","distrito":"SAN ISIDRO","estacion":"Tiki Too","direccion":"Av. José Gálvez Barrenechea Nº 211 esq. Av. Del Parque Norte Nº 590","bandera":"Repsol","red":"Repsol","r14":"NO","combustibles":["D2","GR","GP","GLP"],"lat":-12.0918797,"lon":-77.0134102},{"id":133,"zona":"LIMA","distrito":"SAN JUAN DE LURIGANCHO","estacion":"Chimu","direccion":"Av. Gran Chimú N° 1412","bandera":"Alle","red":"Alle Energies","r14":"NO","combustibles":["D2","GR","GP"],"lat":-12.0244192,"lon":-76.9881209},{"id":134,"zona":"LIMA","distrito":"SAN JUAN DE LURIGANCHO","estacion":"Enpex","direccion":"Av. Proceres de la Independencia esquina Av. Los Postes","bandera":"Sin Bandera","red":"Independiente","r14":"R14","combustibles":["GNV"],"lat":-11.9969546,"lon":-77.0094014},{"id":135,"zona":"LIMA","distrito":"SAN JUAN DE LURIGANCHO","estacion":"Palmeras","direccion":"Av. Santa Rosa S/N esq Jr. Parquinsonias Mz D Lt 5 Urb. Canto Grande","bandera":"Sin Bandera","red":"Independiente","r14":"R14","combustibles":["D2","GR","GP","GLP"],"lat":-11.9802625,"lon":-76.99184},{"id":136,"zona":"LIMA","distrito":"SAN JUAN DE LURIGANCHO","estacion":"Repsol Los Angeles","direccion":"Av. Proceres de la Independencia N° 5324","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP"],"lat":-11.9465665,"lon":-76.9838036},{"id":137,"zona":"LIMA","distrito":"SAN JUAN DE LURIGANCHO","estacion":"Tristar","direccion":"Av. Próceres de Independencia N° 1487 Urb. Los Jardines","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP","GLP","GNV"],"lat":-12.0101438,"lon":-77.0039927},{"id":138,"zona":"LIMA","distrito":"SAN JUAN DE MIRAFLORES","estacion":"GO! Gas Las Juanas","direccion":"Av. Andrés Avelino Cáceres esq. Av. Mariano Pastor Sevilla","bandera":"Go","red":"Consorcio Grifos","r14":"NO","combustibles":["GLP"],"lat":-12.178503,"lon":-76.9659884},{"id":139,"zona":"LIMA","distrito":"SAN JUAN DE MIRAFLORES","estacion":"GO! Luisagas","direccion":"Av. Pastor Sevilla esq. Av. Mateo Pumacahua Mz. I Lt. 24","bandera":"Go","red":"Consorcio Grifos","r14":"NO","combustibles":["D2","GR","GP","GLP","GNV"],"lat":-12.1923384,"lon":-76.9610108},{"id":140,"zona":"LIMA","distrito":"SAN JUAN DE MIRAFLORES","estacion":"ES Ultragrifos","direccion":"Carretera Panamericana Sur Km. 18.5","bandera":"Primax","red":"Abanderada","r14":"R14","combustibles":["D2","GR","GP","GLP","GNV","UREA"],"lat":-12.2154136,"lon":-76.9771681},{"id":141,"zona":"LIMA","distrito":"SAN JUAN DE MIRAFLORES","estacion":"Los Geranios","direccion":"Av. Pastor Sevilla Mz C Lt 38","bandera":"Repsol","red":"Abanderada","r14":"NO","combustibles":["D2","GR","GP"],"lat":-12.1872598,"lon":-76.964228},{"id":142,"zona":"LIMA","distrito":"SAN JUAN DE MIRAFLORES","estacion":"Repsol San Juan","direccion":"Av. Los Heroes N° 1366 - 1372 Urb. Jardin","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP"],"lat":-12.1613787,"lon":-76.9564998},{"id":143,"zona":"LIMA","distrito":"SAN LUIS","estacion":"Arriola","direccion":"Av. Nicolás Arriola N° 2140","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP","GNV"],"lat":-12.0720472,"lon":-77.0025909},{"id":144,"zona":"LIMA","distrito":"SAN MARTÍN PORRES","estacion":"ES Rex","direccion":"Av. Tomas Valle N° 579","bandera":"Primax","red":"Abanderada","r14":"R14","combustibles":["D2","GR","GP","GLP","GNV"],"lat":-12.0094969,"lon":-77.0647366},{"id":145,"zona":"LIMA","distrito":"SAN MARTÍN PORRES","estacion":"Los Milagros Repsol","direccion":"Av. Gerardo Unger N° 1453","bandera":"Repsol","red":"Repsol","r14":"NO","combustibles":["D2","GR","GP"],"lat":-12.0105159,"lon":-77.0533986},{"id":146,"zona":"LIMA","distrito":"SAN MARTÍN PORRES","estacion":"Pro","direccion":"Av. Alfredo Mendiola N° 7650 Km. 21.50 Urbanización Pro","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP"],"lat":-11.939778,"lon":-77.070917},{"id":147,"zona":"LIMA","distrito":"SAN MARTÍN PORRES","estacion":"Universitaria","direccion":"Av. Universitaria cdra. 40 esq. Calle Santa Rosa (Calle 13)","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP","GLP"],"lat":-11.9885828,"lon":-77.0811523},{"id":148,"zona":"LIMA","distrito":"SAN MIGUEL","estacion":"Chubut","direccion":"Av. Venezuela N° 4647","bandera":"Repsol","red":"Repsol","r14":"NO","combustibles":["D2","GR","GP","GNV"],"lat":-12.0615667,"lon":-77.0869185},{"id":149,"zona":"LIMA","distrito":"SAN MIGUEL","estacion":"Faucett","direccion":"Av. Elmer Faucett Nº 481","bandera":"Repsol","red":"Repsol","r14":"NO","combustibles":["D2","GR","GP"],"lat":-12.0650203,"lon":-77.0973905},{"id":150,"zona":"LIMA","distrito":"SAN MIGUEL","estacion":"GO! La Paz","direccion":"Av. La Paz N° 194","bandera":"Go","red":"Consorcio Grifos","r14":"NO","combustibles":["D2","GR","GP"],"lat":-12.0893448,"lon":-77.0848265},{"id":151,"zona":"LIMA","distrito":"SAN MIGUEL","estacion":"La Marina 2","direccion":"Av. La Marina Nº 2530 esq. Av. Parque de Las Leyendas","bandera":"Repsol","red":"Repsol","r14":"NO","combustibles":["D2","GR","GP"],"lat":-12.0778032,"lon":-77.0899049},{"id":152,"zona":"LIMA","distrito":"SANTA ANITA","estacion":"Santa Anita","direccion":"Av. Santa Rosa N° 274","bandera":"Repsol","red":"Abanderada","r14":"NO","combustibles":["D2","GR","GP","GNV"],"lat":-12.050218,"lon":-76.961897},{"id":153,"zona":"LIMA","distrito":"SANTA ROSA","estacion":"Ancon","direccion":"Carretera Panamericana Norte Km 42","bandera":"Repsol","red":"Aero Gas del Norte","r14":"R14","combustibles":["D2","GR","GP"],"lat":-11.7929415,"lon":-77.1471358},{"id":154,"zona":"LIMA","distrito":"SURCO","estacion":"Repsol El Derby","direccion":"Av. El Derby N° 109 Urbanización el Derby","bandera":"Repsol","red":"Repsol","r14":"NO","combustibles":["D2","GR","GP"],"lat":-12.0989153,"lon":-76.9707068},{"id":155,"zona":"LIMA","distrito":"SURCO","estacion":"Primax El Derby","direccion":"Av. El Derby Nº 118 esq. Av. El Polo","bandera":"Primax","red":"Abanderada","r14":"NO","combustibles":["D2","GR","GP"],"lat":-12.0984569,"lon":-76.9710335},{"id":156,"zona":"LIMA","distrito":"SURCO","estacion":"GO! Ganagas","direccion":"Av. Los Próceres Nº 611 esq. Av. Paseo de la República","bandera":"Go","red":"Consorcio Grifos","r14":"NO","combustibles":["D2","GR","GP","GLP","GNV"],"lat":-12.1526856,"lon":-76.9895169},{"id":157,"zona":"LIMA","distrito":"SURCO","estacion":"GO! Gassurco","direccion":"Av. Guardia Civil Sur esq. Calle Doña Mercedes Mz. B Lt. 123 - Santa Rosa","bandera":"Go","red":"Consorcio Grifos","r14":"NO","combustibles":["D2","GR","GP","GLP","GNV"],"lat":-12.1713022,"lon":-76.9920198},{"id":159,"zona":"LIMA","distrito":"SURCO","estacion":"Precursores","direccion":"Av. Angamos Nº 1120 - Urb. Valle Hermoso","bandera":"Repsol","red":"Repsol","r14":"NO","combustibles":["D2","GR","GP"],"lat":-12.1103802,"lon":-76.9795786},{"id":160,"zona":"LIMA","distrito":"SURCO","estacion":"San Blas","direccion":"Av. Próceres Nº 105 esq. Av. Santiago de Surco","bandera":"Repsol","red":"Repsol","r14":"NO","combustibles":["D2","GR","GP"],"lat":-12.1481283,"lon":-76.9861599},{"id":161,"zona":"LIMA","distrito":"SURCO","estacion":"Surco","direccion":"Av. Roosevelt N° 400 esq. Parque alto","bandera":"Repsol","red":"Repsol","r14":"NO","combustibles":["D2","GR","GP"],"lat":-12.146657,"lon":-77.0091751},{"id":162,"zona":"LIMA","distrito":"SURQUILLO","estacion":"Aviacion","direccion":"Avenida Aviación N° 4269 - 4285","bandera":"Petroamerica","red":"Petroamerica","r14":"NO","combustibles":["D2","GR","GP","GLP","GNV"],"lat":-12.1180812,"lon":-76.9982698},{"id":163,"zona":"LIMA","distrito":"SURQUILLO","estacion":"Angamos 2","direccion":"Av. Angamos Este N° 1715","bandera":"Repsol","red":"Repsol","r14":"NO","combustibles":["D2","GR","GP"],"lat":-12.1123937,"lon":-77.0132291},{"id":164,"zona":"LIMA","distrito":"SURQUILLO","estacion":"GO! Masur","direccion":"Av. República de Panamá Nº 4361","bandera":"Go","red":"Consorcio Grifos","r14":"NO","combustibles":["D2","GR","GP","GNV"],"lat":-12.1093714,"lon":-77.0180652},{"id":165,"zona":"LIMA","distrito":"SURQUILLO","estacion":"Principal","direccion":"Calle 32 Nº 382 - Corpac","bandera":"Repsol","red":"Repsol","r14":"NO","combustibles":["D2","GR","GP"],"lat":-12.1075423,"lon":-77.0105278},{"id":166,"zona":"LIMA","distrito":"VENTANILLA","estacion":"Tierra","direccion":"Autopista hacia Ventanilla - Av. Néstor Gambeta - Sub Parcela A6 - 2B - 1","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP"],"lat":-11.929529,"lon":-77.129741},{"id":167,"zona":"LIMA","distrito":"VILLA EL SALVADOR","estacion":"GO! Mice","direccion":"Av. María Reiche Mz. A Lt. 1","bandera":"Go","red":"Consorcio Grifos","r14":"R14","combustibles":["D2","GR","GP","GLP","GNV"],"lat":-12.240772,"lon":-76.9139447},{"id":168,"zona":"LIMA","distrito":"VILLA EL SALVADOR","estacion":"Petrosur","direccion":"Carretera Panamericana Sur Km. 19.5","bandera":"Pecsa","red":"Abanderada","r14":"R14","combustibles":["D2","GR","GP","GLP"],"lat":-12.2228538,"lon":-76.9748803},{"id":169,"zona":"LIMA","distrito":"VILLA EL SALVADOR","estacion":"Villa el Salvador","direccion":"Avenida Central Cdra 6 Sector 1 Grupo 3 Mz LTS 1,2","bandera":"Repsol","red":"Repsol","r14":"NO","combustibles":["D2","GR","GP"],"lat":-12.1930191,"lon":-76.9455376},{"id":170,"zona":"LIMA","distrito":"VILLA MARÍA DEL TRIUNFO","estacion":"Villa MarIa del Triunfo","direccion":"Av. El Sol N° 2782","bandera":"Petroamerica","red":"Petroamerica","r14":"R14","combustibles":["D2","GR","GP"],"lat":-12.1674073,"lon":-76.9482791},{"id":171,"zona":"LIMA","distrito":"VILLA MARÍA DEL TRIUNFO","estacion":"ES Tablada","direccion":"Av. Prolongación Pachacutec N° 5295","bandera":"Primax","red":"Abanderada","r14":"R14","combustibles":["D2","GR","GP","GLP"],"lat":-12.194853,"lon":-76.9343401}];
+
+const PROV_DATA = [{"id":0,"zona":"PROVINCIA","departamento":"Amazonas","provincia":"Chachapoyas","estacion":"Montecar","direccion":"Jr. Unión N° 942 Barrio La Laguna","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-6.234059,"lon":-77.8692157},{"id":1,"zona":"PROVINCIA","departamento":"Áncash","provincia":"Bolognesi","estacion":"Grifo Colca","direccion":"Carretera Pativilca Huaraz Km 83, Caserio Colca","bandera":"Petroperú","red":"Abanderada","r14":"R14","combustibles":["D2","GR","GP"],"lat":-10.1573101,"lon":-77.4620986},{"id":2,"zona":"PROVINCIA","departamento":"Áncash","provincia":"Casma","estacion":"Casma","direccion":"Carretera Panamericana Norte Km. 380 - Sector Tabon Bajo","bandera":"Petroamérica","red":"Petroamérica","r14":"R14","combustibles":["D2","GR","GP","GLP"],"lat":-9.4474006,"lon":-78.3494981},{"id":3,"zona":"PROVINCIA","departamento":"Áncash","provincia":"Huaraz","estacion":"Monterrey","direccion":"Avenida Centenario N° 5927","bandera":"Repsol","red":"Abanderada","r14":"R14","combustibles":["D2","GR","GP"],"lat":-9.4719173,"lon":-77.5381292},{"id":4,"zona":"PROVINCIA","departamento":"Áncash","provincia":"Huarmey","estacion":"Huarmey","direccion":"Panamericana Norte Km. 296.5 - Camino Real de Huarmey","bandera":"Primax","red":"Abanderada","r14":"R14","combustibles":["D2","GR","GP"],"lat":-10.062263,"lon":-78.1575276},{"id":5,"zona":"PROVINCIA","departamento":"Áncash","provincia":"Huaylas","estacion":"Huaylas","direccion":"Panamericana Norte Km.197 - San Jacinto","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-9.0578378,"lon":-78.0447936},{"id":6,"zona":"PROVINCIA","departamento":"Áncash","provincia":"Recuay","estacion":"Ticapampa","direccion":"Panamericana Norte Km 276.5 Ticapampa","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-9.7985432,"lon":-77.4278421},{"id":7,"zona":"PROVINCIA","departamento":"Áncash","provincia":"Santa","estacion":"Chimbote 1","direccion":"Panamericana Norte Km. 432 - Ex Fundo Lacramarca","bandera":"Primax","red":"Abanderada","r14":"R14","combustibles":["D2","GR","GP","GLP"],"lat":-9.0853986,"lon":-78.576854},{"id":8,"zona":"PROVINCIA","departamento":"Áncash","provincia":"Santa","estacion":"Chimbote 2","direccion":"Panamericana Norte Km. 425.9","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP","GLP"],"lat":-9.0853986,"lon":-78.576854},{"id":9,"zona":"PROVINCIA","departamento":"Áncash","provincia":"Santa","estacion":"Chimbote 3","direccion":"Av. Enrique Meiggs N° 101, Los Pinos","bandera":"Repsol","red":"Abanderada","r14":"R14","combustibles":["D2","GR","GP"],"lat":-9.0853986,"lon":-78.576854},{"id":10,"zona":"PROVINCIA","departamento":"Áncash","provincia":"Santa","estacion":"Chimbote 4","direccion":"Panamericana Norte Km. 432 Lacramarca","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-9.0853986,"lon":-78.576854},{"id":11,"zona":"PROVINCIA","departamento":"Áncash","provincia":"Santa","estacion":"Chimbote Repsol","direccion":"Panamericana Norte Km. 435","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP","GLP"],"lat":-9.0590044,"lon":-78.6113047},{"id":12,"zona":"PROVINCIA","departamento":"Áncash","provincia":"Santa","estacion":"La Muralla","direccion":"Panamericana Norte Km. 426","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-9.0853986,"lon":-78.576854},{"id":13,"zona":"PROVINCIA","departamento":"Apurímac","provincia":"Abancay","estacion":"Abancay","direccion":"Av. Nunez N° 116 barrio de Tamburco","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP"],"lat":-13.6365482,"lon":-72.89703},{"id":14,"zona":"PROVINCIA","departamento":"Apurímac","provincia":"Andahuaylas","estacion":"Andahuaylas","direccion":"Jr. Andahuaylaillas N° 221 - Urb San Luís","bandera":"Sin Bandera","red":"Abanderada","r14":"R14","combustibles":["D2","GR","GP"],"lat":-13.6636568,"lon":-73.3994623},{"id":15,"zona":"PROVINCIA","departamento":"Apurímac","provincia":"Andahuaylas","estacion":"Andahuaylas 2","direccion":"Jirón Víctor Raúl Haya de la Torre N° 800","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP"],"lat":-13.6636568,"lon":-73.3994623},{"id":16,"zona":"PROVINCIA","departamento":"Apurímac","provincia":"Aymaraes","estacion":"Chalhuanca","direccion":"Carretera Abancay-Nazca Km 128 Via Los Libertadores","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-14.2899301,"lon":-73.2553828},{"id":17,"zona":"PROVINCIA","departamento":"Apurímac","provincia":"Cotabambas","estacion":"Cotabambas","direccion":"Carretera Cusco - Abancay Km 99 - Challhuahuacho","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-14.0748948,"lon":-72.1700736},{"id":18,"zona":"PROVINCIA","departamento":"Apurímac","provincia":"Cotabambas","estacion":"Tambobamba","direccion":"Tambobamba - Cotabambas - Apurímac, Km 98","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-13.9115574,"lon":-72.1542968},{"id":19,"zona":"PROVINCIA","departamento":"Arequipa","provincia":"Arequipa","estacion":"Arequipa 1","direccion":"Av. Los Incas N° 204 - Urb. La Negrita","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP"],"lat":-16.3715935,"lon":-71.5442599},{"id":20,"zona":"PROVINCIA","departamento":"Arequipa","provincia":"Arequipa","estacion":"Arequipa 2","direccion":"Av. Aviación N° 210 - Cerro Colorado","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP"],"lat":-16.3715935,"lon":-71.5442599},{"id":21,"zona":"PROVINCIA","departamento":"Arequipa","provincia":"Arequipa","estacion":"Arequipa 3","direccion":"Av. Ejercito N° 1009 - Miraflores","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP"],"lat":-16.3920635,"lon":-71.5241677},{"id":22,"zona":"PROVINCIA","departamento":"Arequipa","provincia":"Arequipa","estacion":"Arequipa 4","direccion":"Av. Aviacion N° 1710 - Jose Luis Bustamante y Rivero","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP"],"lat":-16.4211467,"lon":-71.5164557},{"id":23,"zona":"PROVINCIA","departamento":"Arequipa","provincia":"Arequipa","estacion":"Arequipa 5","direccion":"Av. La Marina N° 1109","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP"],"lat":-16.406768,"lon":-71.534609},{"id":24,"zona":"PROVINCIA","departamento":"Arequipa","provincia":"Arequipa","estacion":"Arequipa 6","direccion":"Av. Aviacion N° 512 - Miraflores","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP"],"lat":-16.406768,"lon":-71.534609},{"id":25,"zona":"PROVINCIA","departamento":"Arequipa","provincia":"Arequipa","estacion":"Arequipa 7","direccion":"Av. La Marina N° 402 - Mariano Melgar","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP"],"lat":-16.3920635,"lon":-71.5241677},{"id":26,"zona":"PROVINCIA","departamento":"Arequipa","provincia":"Arequipa","estacion":"Arequipa 8","direccion":"Av. Ejército N° 516 - Miraflores","bandera":"Primax","red":"Abanderada","r14":"R14","combustibles":["D2","GR","GP","GLP"],"lat":-16.406768,"lon":-71.534609},{"id":27,"zona":"PROVINCIA","departamento":"Arequipa","provincia":"Arequipa","estacion":"Arequipa 9","direccion":"Calle Deán Valdivia N° 102","bandera":"Primax","red":"Abanderada","r14":"R14","combustibles":["D2","GR","GP","GLP"],"lat":-16.406768,"lon":-71.534609},{"id":28,"zona":"PROVINCIA","departamento":"Arequipa","provincia":"Arequipa","estacion":"Arequipa 10","direccion":"Av. Aviacion N° 800 - Miraflores","bandera":"Primax","red":"Abanderada","r14":"R14","combustibles":["D2","GR","GP","GNV"],"lat":-16.406768,"lon":-71.534609},{"id":29,"zona":"PROVINCIA","departamento":"Arequipa","provincia":"Arequipa","estacion":"Arequipa 11","direccion":"Av. Venezuela N° 304 - Cercado","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-16.406768,"lon":-71.534609},{"id":30,"zona":"PROVINCIA","departamento":"Arequipa","provincia":"Arequipa","estacion":"Arequipa 12","direccion":"Calle Piérola N° 101 - Hunter","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-16.4478533,"lon":-71.5808742},{"id":31,"zona":"PROVINCIA","departamento":"Arequipa","provincia":"Arequipa","estacion":"Arequipa 13","direccion":"Calle Cusco N° 113 - Sachaca","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-16.4045992,"lon":-71.5767156},{"id":32,"zona":"PROVINCIA","departamento":"Arequipa","provincia":"Arequipa","estacion":"Arequipa 14","direccion":"Av. Parra N° 101 - Cercado","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-16.406768,"lon":-71.534609},{"id":33,"zona":"PROVINCIA","departamento":"Arequipa","provincia":"Arequipa","estacion":"Arequipa 15","direccion":"Calle Cuzco N° 306 - Alto Selva Alegre","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-16.3920635,"lon":-71.5241677},{"id":34,"zona":"PROVINCIA","departamento":"Arequipa","provincia":"Arequipa","estacion":"Arequipa 16","direccion":"Av. Porongoche N° 101","bandera":"Petroperú","red":"Abanderada","r14":"R14","combustibles":["D2","GR","GP"],"lat":-16.4211467,"lon":-71.5164557},{"id":35,"zona":"PROVINCIA","departamento":"Arequipa","provincia":"Camaná","estacion":"Camaná","direccion":"Panamericana Sur Km. 845 - Pampa Colorada","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP"],"lat":-16.6142842,"lon":-72.6989821},{"id":36,"zona":"PROVINCIA","departamento":"Arequipa","provincia":"Caraveli","estacion":"Caraveli","direccion":"Panamericana Sur Km. 562","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-15.7758491,"lon":-74.2680281},{"id":37,"zona":"PROVINCIA","departamento":"Arequipa","provincia":"Caylloma","estacion":"Chivay","direccion":"Av. Salaverry N° 101 - Chivay","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-15.6387025,"lon":-71.5978765},{"id":38,"zona":"PROVINCIA","departamento":"Arequipa","provincia":"Islay","estacion":"Mollendo","direccion":"Panamericana Sur Km. 1053 - Islay","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP"],"lat":-17.0099796,"lon":-72.0232176},{"id":39,"zona":"PROVINCIA","departamento":"Arequipa","provincia":"La Unión","estacion":"Cotahuasi","direccion":"Av. Huancayo S/N - Cotahuasi","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-15.2050026,"lon":-72.8866121},{"id":40,"zona":"PROVINCIA","departamento":"Ayacucho","provincia":"Huamanga","estacion":"Ayacucho 1","direccion":"Jr. Salvador Cavero N° 520 - Ayacucho","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP"],"lat":-13.1625257,"lon":-74.197221},{"id":41,"zona":"PROVINCIA","departamento":"Ayacucho","provincia":"Huamanga","estacion":"Ayacucho 2","direccion":"Av. Independencia N° 601 - Ayacucho","bandera":"Primax","red":"Abanderada","r14":"R14","combustibles":["D2","GR","GP"],"lat":-13.1625257,"lon":-74.197221},{"id":42,"zona":"PROVINCIA","departamento":"Ayacucho","provincia":"Huamanga","estacion":"Ayacucho 3","direccion":"Av. Andrés Avelino Cáceres N° 195","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-13.1625257,"lon":-74.197221},{"id":43,"zona":"PROVINCIA","departamento":"Ayacucho","provincia":"Lucanas","estacion":"Puquio","direccion":"Av. Libertad S/N - Puquio","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-14.6934584,"lon":-74.1384656},{"id":44,"zona":"PROVINCIA","departamento":"Ayacucho","provincia":"Lucanas","estacion":"Nasca","direccion":"Panamericana Sur Km. 452","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP","GLP"],"lat":-14.8413419,"lon":-74.9425952},{"id":45,"zona":"PROVINCIA","departamento":"Cajamarca","provincia":"Cajamarca","estacion":"Cajamarca 1","direccion":"Jr. Angamos N° 1290 - Cajamarca","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP"],"lat":-7.1718464,"lon":-78.5061168},{"id":46,"zona":"PROVINCIA","departamento":"Cajamarca","provincia":"Cajamarca","estacion":"Cajamarca 2","direccion":"Av. San Martin de Porres N° 195","bandera":"Primax","red":"Abanderada","r14":"R14","combustibles":["D2","GR","GP"],"lat":-7.1718464,"lon":-78.5061168},{"id":47,"zona":"PROVINCIA","departamento":"Cajamarca","provincia":"Cajamarca","estacion":"Cajamarca 3","direccion":"Av. Héroes del Cenepa N° 1001","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP","GLP"],"lat":-7.1718464,"lon":-78.5061168},{"id":48,"zona":"PROVINCIA","departamento":"Cajamarca","provincia":"Chota","estacion":"Chota","direccion":"Jr. Héroes del Cenepa N° 101","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-6.5587849,"lon":-78.6528023},{"id":49,"zona":"PROVINCIA","departamento":"Cajamarca","provincia":"Cutervo","estacion":"Cutervo","direccion":"Jr. Cutervo N° 250","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-6.3848574,"lon":-78.8155083},{"id":50,"zona":"PROVINCIA","departamento":"Cajamarca","provincia":"Jaén","estacion":"Jaén","direccion":"Av. Pakamuros N° 1201","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP"],"lat":-5.6931468,"lon":-78.8022694},{"id":51,"zona":"PROVINCIA","departamento":"Cajamarca","provincia":"San Ignacio","estacion":"San Ignacio","direccion":"Jr. San Ignacio N° 320","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-5.1474853,"lon":-79.0017928},{"id":52,"zona":"PROVINCIA","departamento":"Cusco","provincia":"Anta","estacion":"Anta","direccion":"Panamericana Sur Km. 1008 - Anta","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-13.4716898,"lon":-72.1541958},{"id":53,"zona":"PROVINCIA","departamento":"Cusco","provincia":"Calca","estacion":"Calca","direccion":"Jr. Kiswarkancha N° 201","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-13.3249956,"lon":-71.9640003},{"id":54,"zona":"PROVINCIA","departamento":"Cusco","provincia":"Canchis","estacion":"Sicuani","direccion":"Av. Centenario N° 1001","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP"],"lat":-14.2814181,"lon":-71.2327046},{"id":55,"zona":"PROVINCIA","departamento":"Cusco","provincia":"Chumbivilcas","estacion":"Santo Tomas","direccion":"Jr. Espinar N° 108 - Chumbivilcas","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-14.4520618,"lon":-72.0900258},{"id":56,"zona":"PROVINCIA","departamento":"Cusco","provincia":"Cusco","estacion":"Cusco 1","direccion":"Av. El Sol N° 620 - Cercado","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP"],"lat":-13.5270046,"lon":-71.9714605},{"id":57,"zona":"PROVINCIA","departamento":"Cusco","provincia":"Cusco","estacion":"Cusco 2","direccion":"Av. Tullumayo N° 210 - Wanchaq","bandera":"Primax","red":"Abanderada","r14":"R14","combustibles":["D2","GR","GP","GLP"],"lat":-13.5270046,"lon":-71.9714605},{"id":58,"zona":"PROVINCIA","departamento":"Cusco","provincia":"Cusco","estacion":"Cusco 3","direccion":"Av. Grau N° 510","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-13.5270046,"lon":-71.9714605},{"id":59,"zona":"PROVINCIA","departamento":"Cusco","provincia":"Cusco","estacion":"Cusco 4","direccion":"Av. Collasuyo N° 1501","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP","GLP"],"lat":-13.5407474,"lon":-71.9395127},{"id":60,"zona":"PROVINCIA","departamento":"Cusco","provincia":"Espinar","estacion":"Espinar","direccion":"Jr. Dos de Mayo N° 101 - Espinar","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-14.7950272,"lon":-71.4059822},{"id":61,"zona":"PROVINCIA","departamento":"Cusco","provincia":"La Convención","estacion":"Quillabamba","direccion":"Av. Prolongación 28 de Julio N° 801","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-12.8612084,"lon":-72.6958465},{"id":62,"zona":"PROVINCIA","departamento":"Cusco","provincia":"Paucartambo","estacion":"Paucartambo","direccion":"Jr. Bolognesi N° 201","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-13.3191891,"lon":-71.5918963},{"id":63,"zona":"PROVINCIA","departamento":"Cusco","provincia":"Quispicanchi","estacion":"Urcos","direccion":"Av. Los Incas N° 502","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-13.6851453,"lon":-71.6274428},{"id":64,"zona":"PROVINCIA","departamento":"Cusco","provincia":"Urubamba","estacion":"Urubamba","direccion":"Av. Ferrocarril N° 401","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-13.3103298,"lon":-72.1114505},{"id":65,"zona":"PROVINCIA","departamento":"Huancavelica","provincia":"Huancavelica","estacion":"Huancavelica","direccion":"Av. Andrés Avelino Cáceres N° 101","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-12.7833599,"lon":-74.9577702},{"id":66,"zona":"PROVINCIA","departamento":"Huancavelica","provincia":"Tayacaja","estacion":"Pampas","direccion":"Jr. Grau N° 501 - Pampas","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-12.3985651,"lon":-74.874388},{"id":67,"zona":"PROVINCIA","departamento":"Huancavelica","provincia":"Tayacaja","estacion":"Acobamba","direccion":"Av. Huancayo N° 201 - Acobamba","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-12.8358736,"lon":-74.5660421},{"id":68,"zona":"PROVINCIA","departamento":"Huánuco","provincia":"Huánuco","estacion":"Huanuco 1","direccion":"Jr. 28 de Julio N° 501 - Huánuco","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP"],"lat":-9.9212712,"lon":-76.2373666},{"id":69,"zona":"PROVINCIA","departamento":"Huánuco","provincia":"Huánuco","estacion":"Huanuco 2","direccion":"Av. Universitaria N° 1001","bandera":"Primax","red":"Abanderada","r14":"R14","combustibles":["D2","GR","GP","GLP"],"lat":-9.9212712,"lon":-76.2373666},{"id":70,"zona":"PROVINCIA","departamento":"Huánuco","provincia":"Leoncio Prado","estacion":"Tingo Maria","direccion":"Jr. Huánuco N° 801 - Tingo María","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-9.2975428,"lon":-75.9972601},{"id":71,"zona":"PROVINCIA","departamento":"Ica","provincia":"Chincha","estacion":"Chincha 1","direccion":"Panamericana Sur Km. 202","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP"],"lat":-13.4153572,"lon":-76.142246},{"id":72,"zona":"PROVINCIA","departamento":"Ica","provincia":"Chincha","estacion":"Chincha 2","direccion":"Panamericana Sur Km. 198","bandera":"Primax","red":"Abanderada","r14":"R14","combustibles":["D2","GR","GP","GLP"],"lat":-13.4153572,"lon":-76.142246},{"id":73,"zona":"PROVINCIA","departamento":"Ica","provincia":"Chincha","estacion":"Chincha 3","direccion":"Panamericana Sur Km. 196","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-13.3825467,"lon":-76.1279546},{"id":74,"zona":"PROVINCIA","departamento":"Ica","provincia":"Ica","estacion":"Ica 1","direccion":"Panamericana Sur Km. 305 - Urb. San Isidro","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP","GLP"],"lat":-14.0837544,"lon":-75.7222169},{"id":75,"zona":"PROVINCIA","departamento":"Ica","provincia":"Ica","estacion":"Ica 2","direccion":"Av. Los Maestros N° 101","bandera":"Primax","red":"Abanderada","r14":"R14","combustibles":["D2","GR","GP"],"lat":-14.0837544,"lon":-75.7222169},{"id":76,"zona":"PROVINCIA","departamento":"Ica","provincia":"Ica","estacion":"Ica 3","direccion":"Av. Grau N° 801 - Cercado","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-14.0526963,"lon":-75.7463985},{"id":77,"zona":"PROVINCIA","departamento":"Ica","provincia":"Ica","estacion":"Ica 4","direccion":"Jr. Cajamarca N° 101","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP"],"lat":-14.0526963,"lon":-75.7463985},{"id":78,"zona":"PROVINCIA","departamento":"Ica","provincia":"Ica","estacion":"Ica 5","direccion":"Panamericana Sur Km. 298","bandera":"Primax","red":"Abanderada","r14":"R14","combustibles":["D2","GR","GP","GLP"],"lat":-14.0491288,"lon":-75.7147831},{"id":79,"zona":"PROVINCIA","departamento":"Ica","provincia":"Nasca","estacion":"Nasca 1","direccion":"Panamericana Sur Km. 452","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP","GLP"],"lat":-14.8413419,"lon":-74.9425952},{"id":80,"zona":"PROVINCIA","departamento":"Ica","provincia":"Nasca","estacion":"Nasca 2","direccion":"Panamericana Sur Km. 448","bandera":"Primax","red":"Abanderada","r14":"R14","combustibles":["D2","GR","GP"],"lat":-14.8413419,"lon":-74.9425952},{"id":81,"zona":"PROVINCIA","departamento":"Ica","provincia":"Nasca","estacion":"Nasca 3","direccion":"Jr. Lima N° 101 - Nasca","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-14.8413419,"lon":-74.9425952},{"id":82,"zona":"PROVINCIA","departamento":"Ica","provincia":"Palpa","estacion":"Palpa","direccion":"Panamericana Sur Km. 394","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-14.5302863,"lon":-75.2000963},{"id":83,"zona":"PROVINCIA","departamento":"Ica","provincia":"Pisco","estacion":"Pisco 1","direccion":"Panamericana Sur Km. 238 - Pisco","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP","GLP"],"lat":-13.7109935,"lon":-76.1969547},{"id":84,"zona":"PROVINCIA","departamento":"Ica","provincia":"Pisco","estacion":"Pisco 2","direccion":"Av. Pedemonte N° 101","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-13.7109935,"lon":-76.1969547},{"id":85,"zona":"PROVINCIA","departamento":"Ica","provincia":"Pisco","estacion":"Pisco 3","direccion":"Panamericana Sur Km. 235","bandera":"Primax","red":"Abanderada","r14":"R14","combustibles":["D2","GR","GP"],"lat":-13.7109935,"lon":-76.1969547},{"id":86,"zona":"PROVINCIA","departamento":"Junín","provincia":"Chanchamayo","estacion":"La Merced","direccion":"Jr. Tarma N° 601 - La Merced","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-11.0391227,"lon":-75.3224189},{"id":87,"zona":"PROVINCIA","departamento":"Junín","provincia":"Huancayo","estacion":"Huancayo 1","direccion":"Av. Giraldez N° 901","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP"],"lat":-12.0656215,"lon":-75.2171244},{"id":88,"zona":"PROVINCIA","departamento":"Junín","provincia":"Huancayo","estacion":"Huancayo 2","direccion":"Av. Ferrocarril N° 1501","bandera":"Primax","red":"Abanderada","r14":"R14","combustibles":["D2","GR","GP","GLP"],"lat":-12.0656215,"lon":-75.2171244},{"id":89,"zona":"PROVINCIA","departamento":"Junín","provincia":"Huancayo","estacion":"Huancayo 3","direccion":"Av. Los Chankas N° 1001","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-12.0656215,"lon":-75.2171244},{"id":90,"zona":"PROVINCIA","departamento":"Junín","provincia":"Huancayo","estacion":"Huancayo 4","direccion":"Calle Real N° 2001","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP","GNV"],"lat":-12.0656215,"lon":-75.2171244},{"id":91,"zona":"PROVINCIA","departamento":"Junín","provincia":"Huancayo","estacion":"Huancayo 5","direccion":"Av. Huancavelica N° 1601","bandera":"Primax","red":"Abanderada","r14":"R14","combustibles":["D2","GR","GP"],"lat":-12.0656215,"lon":-75.2171244},{"id":92,"zona":"PROVINCIA","departamento":"Junín","provincia":"Satipo","estacion":"Satipo","direccion":"Jr. 8 de Diciembre N° 101","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-11.2517023,"lon":-74.6369065},{"id":93,"zona":"PROVINCIA","departamento":"La Libertad","provincia":"Ascope","estacion":"Chocope","direccion":"Panamericana Norte Km. 579","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP"],"lat":-7.7889199,"lon":-79.2190227},{"id":94,"zona":"PROVINCIA","departamento":"La Libertad","provincia":"Ascope","estacion":"Chicama","direccion":"Panamericana Norte Km. 567","bandera":"Primax","red":"Abanderada","r14":"R14","combustibles":["D2","GR","GP","GLP"],"lat":-7.8435521,"lon":-79.1467629},{"id":95,"zona":"PROVINCIA","departamento":"La Libertad","provincia":"Gran Chimú","estacion":"Cascas","direccion":"Jr. La Unión N° 101 - Cascas","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-7.6028473,"lon":-78.8075812},{"id":96,"zona":"PROVINCIA","departamento":"La Libertad","provincia":"Otuzco","estacion":"Otuzco","direccion":"Jr. Bolognesi N° 201","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-7.9024281,"lon":-78.573598},{"id":97,"zona":"PROVINCIA","departamento":"La Libertad","provincia":"Sánchez Carrión","estacion":"Huamachuco","direccion":"Jr. Balta N° 501","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-7.8147629,"lon":-78.0490872},{"id":98,"zona":"PROVINCIA","departamento":"La Libertad","provincia":"Santiago De Chuco","estacion":"Santiago de Chuco","direccion":"Jr. Lima N° 201","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-8.1413278,"lon":-78.1763208},{"id":99,"zona":"PROVINCIA","departamento":"La Libertad","provincia":"Trujillo","estacion":"Trujillo 1","direccion":"Av. España N° 1801","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP","GLP"],"lat":-8.1223237,"lon":-79.0365597},{"id":100,"zona":"PROVINCIA","departamento":"La Libertad","provincia":"Trujillo","estacion":"Trujillo 2","direccion":"Av. Americanas N° 301","bandera":"Primax","red":"Abanderada","r14":"R14","combustibles":["D2","GR","GP"],"lat":-8.1005191,"lon":-79.036067},{"id":101,"zona":"PROVINCIA","departamento":"La Libertad","provincia":"Trujillo","estacion":"Trujillo 3","direccion":"Av. Larco N° 1501 - Víctor Larco Herrera","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP"],"lat":-8.1223237,"lon":-79.0365597},{"id":102,"zona":"PROVINCIA","departamento":"La Libertad","provincia":"Trujillo","estacion":"Trujillo 4","direccion":"Jr. Bolognesi N° 501","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-8.1005191,"lon":-79.036067},{"id":103,"zona":"PROVINCIA","departamento":"La Libertad","provincia":"Trujillo","estacion":"Trujillo 5","direccion":"Av. Metropolitana N° 1001","bandera":"Primax","red":"Abanderada","r14":"R14","combustibles":["D2","GR","GP","GLP","GNV"],"lat":-8.0966866,"lon":-79.0386777},{"id":104,"zona":"PROVINCIA","departamento":"La Libertad","provincia":"Trujillo","estacion":"Trujillo 6","direccion":"Panamericana Norte Km. 558","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP","GLP"],"lat":-8.0815331,"lon":-79.0454256},{"id":105,"zona":"PROVINCIA","departamento":"Lambayeque","provincia":"Chiclayo","estacion":"Chiclayo 1","direccion":"Av. Luis Gonzales N° 1501","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP","GLP"],"lat":-6.7676437,"lon":-79.8416224},{"id":106,"zona":"PROVINCIA","departamento":"Lambayeque","provincia":"Chiclayo","estacion":"Chiclayo 2","direccion":"Av. José Balta N° 1001","bandera":"Primax","red":"Abanderada","r14":"R14","combustibles":["D2","GR","GP"],"lat":-6.7676437,"lon":-79.8416224},{"id":107,"zona":"PROVINCIA","departamento":"Lambayeque","provincia":"Chiclayo","estacion":"Chiclayo 3","direccion":"Av. Grau N° 601 - Chiclayo","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-6.7754809,"lon":-79.8406912},{"id":108,"zona":"PROVINCIA","departamento":"Lambayeque","provincia":"Chiclayo","estacion":"Chiclayo 4","direccion":"Panamericana Norte Km. 771","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP","GLP","GNV"],"lat":-6.7578742,"lon":-79.8630081},{"id":109,"zona":"PROVINCIA","departamento":"Lambayeque","provincia":"Chiclayo","estacion":"Chiclayo 5","direccion":"Av. El Ejército N° 1201","bandera":"Primax","red":"Abanderada","r14":"R14","combustibles":["D2","GR","GP"],"lat":-6.7676437,"lon":-79.8416224},{"id":110,"zona":"PROVINCIA","departamento":"Lambayeque","provincia":"Ferreñafe","estacion":"Ferreñafe","direccion":"Jr. Unión N° 401","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-6.6398248,"lon":-79.7919853},{"id":111,"zona":"PROVINCIA","departamento":"Lambayeque","provincia":"Lambayeque","estacion":"Lambayeque","direccion":"Av. Augusto B. Leguia N° 801","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-6.6834604,"lon":-79.9037622},{"id":112,"zona":"PROVINCIA","departamento":"Lambayeque","provincia":"Lambayeque","estacion":"Motupe","direccion":"Panamericana Norte Km. 841","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP"],"lat":-6.1523448,"lon":-79.7096512},{"id":113,"zona":"PROVINCIA","departamento":"Lima","provincia":"Barranca","estacion":"Barranca","direccion":"Panamericana Norte Km. 188","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP","GLP"],"lat":-10.7427917,"lon":-77.7670772},{"id":114,"zona":"PROVINCIA","departamento":"Lima","provincia":"Cañete","estacion":"Cañete 1","direccion":"Panamericana Sur Km. 143","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP","GLP"],"lat":-13.0769493,"lon":-76.3915591},{"id":115,"zona":"PROVINCIA","departamento":"Lima","provincia":"Cañete","estacion":"Cañete 2","direccion":"Panamericana Sur Km. 140","bandera":"Primax","red":"Abanderada","r14":"R14","combustibles":["D2","GR","GP"],"lat":-13.0769493,"lon":-76.3915591},{"id":116,"zona":"PROVINCIA","departamento":"Lima","provincia":"Cañete","estacion":"Cañete 3","direccion":"Jr. Lima N° 501 - San Vicente de Cañete","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-13.0769493,"lon":-76.3915591},{"id":117,"zona":"PROVINCIA","departamento":"Lima","provincia":"Huaral","estacion":"Huaral","direccion":"Panamericana Norte Km. 76","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP","GLP"],"lat":-11.4980158,"lon":-77.2149176},{"id":118,"zona":"PROVINCIA","departamento":"Lima","provincia":"Huarochirí","estacion":"Matucana","direccion":"Jr. Lima N° 201 - Matucana","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-11.8448293,"lon":-76.3967843},{"id":119,"zona":"PROVINCIA","departamento":"Lima","provincia":"Huarochirí","estacion":"San Mateo","direccion":"Carretera Central Km. 87","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-11.9284631,"lon":-76.3487521},{"id":120,"zona":"PROVINCIA","departamento":"Lima","provincia":"Huarochirí","estacion":"Chicla","direccion":"Carretera Central Km. 100","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-11.7284263,"lon":-76.2884532},{"id":121,"zona":"PROVINCIA","departamento":"Lima","provincia":"Huarochirí","estacion":"La Oroya","direccion":"Carretera Central Km. 175","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP","GLP"],"lat":-11.5192847,"lon":-75.9038271},{"id":122,"zona":"PROVINCIA","departamento":"Lima","provincia":"Huaura","estacion":"Huacho","direccion":"Panamericana Norte Km. 149","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP","GLP"],"lat":-11.1140417,"lon":-77.610154},{"id":123,"zona":"PROVINCIA","departamento":"Lima","provincia":"Huaura","estacion":"Supe","direccion":"Panamericana Norte Km. 192","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-10.7962813,"lon":-77.7124693},{"id":124,"zona":"PROVINCIA","departamento":"Lima","provincia":"Oyón","estacion":"Oyon","direccion":"Jr. Lima N° 301 - Oyón","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-10.6724832,"lon":-76.7713248},{"id":125,"zona":"PROVINCIA","departamento":"Lima","provincia":"Yauyos","estacion":"Yauyos","direccion":"Jr. Lima N° 201 - Yauyos","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-12.4879284,"lon":-75.9213647},{"id":126,"zona":"PROVINCIA","departamento":"Lima","provincia":"Yauyos","estacion":"Mala","direccion":"Panamericana Sur Km. 82","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP"],"lat":-12.6610483,"lon":-76.6371842},{"id":127,"zona":"PROVINCIA","departamento":"Loreto","provincia":"Loreto","estacion":"Iquitos 1","direccion":"Jr. Próspero N° 801 - Iquitos","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-3.7460952,"lon":-73.2489834},{"id":128,"zona":"PROVINCIA","departamento":"Loreto","provincia":"Loreto","estacion":"Iquitos 2","direccion":"Av. La Marina N° 1201","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-3.7460952,"lon":-73.2489834},{"id":129,"zona":"PROVINCIA","departamento":"Loreto","provincia":"Ucayali","estacion":"Contamana","direccion":"Jr. Lima N° 401 - Contamana","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-7.3547312,"lon":-74.9082563},{"id":130,"zona":"PROVINCIA","departamento":"Madre De Dios","provincia":"Tambopata","estacion":"Puerto Maldonado","direccion":"Av. León Velarde N° 401","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-12.5807072,"lon":-69.2034702},{"id":131,"zona":"PROVINCIA","departamento":"Moquegua","provincia":"General Sánchez Cerro","estacion":"Omate","direccion":"Jr. Lima N° 201 - Omate","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-16.6717283,"lon":-70.9928437},{"id":132,"zona":"PROVINCIA","departamento":"Moquegua","provincia":"Ilo","estacion":"Ilo","direccion":"Jr. Moquegua N° 501","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP"],"lat":-17.6468397,"lon":-71.3442508},{"id":133,"zona":"PROVINCIA","departamento":"Moquegua","provincia":"Mariscal Nieto","estacion":"Moquegua 1","direccion":"Av. Balta N° 801","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP"],"lat":-17.1890026,"lon":-70.9213411},{"id":134,"zona":"PROVINCIA","departamento":"Moquegua","provincia":"Mariscal Nieto","estacion":"Moquegua 2","direccion":"Jr. Lima N° 1201","bandera":"Primax","red":"Abanderada","r14":"R14","combustibles":["D2","GR","GP","GLP"],"lat":-17.1890026,"lon":-70.9213411},{"id":135,"zona":"PROVINCIA","departamento":"Moquegua","provincia":"Mariscal Nieto","estacion":"Moquegua 3","direccion":"Panamericana Sur Km. 1139","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-17.1890026,"lon":-70.9213411},{"id":136,"zona":"PROVINCIA","departamento":"Pasco","provincia":"Pasco","estacion":"Cerro de Pasco","direccion":"Jr. Huancavelica N° 501","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-10.6847381,"lon":-76.2568473},{"id":137,"zona":"PROVINCIA","departamento":"Pasco","provincia":"Oxapampa","estacion":"Oxapampa","direccion":"Jr. Bolognesi N° 201","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-10.5826483,"lon":-75.4023847},{"id":138,"zona":"PROVINCIA","departamento":"Piura","provincia":"Ayabaca","estacion":"Ayabaca","direccion":"Jr. Grau N° 201","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-4.6373829,"lon":-79.7084732},{"id":139,"zona":"PROVINCIA","departamento":"Piura","provincia":"Huancabamba","estacion":"Huancabamba","direccion":"Jr. Lima N° 501","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-5.2347381,"lon":-79.4479283},{"id":140,"zona":"PROVINCIA","departamento":"Piura","provincia":"Morropón","estacion":"Chulucanas","direccion":"Jr. Ramón Castilla N° 801","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-5.1026258,"lon":-80.1680926},{"id":141,"zona":"PROVINCIA","departamento":"Piura","provincia":"Paita","estacion":"Paita","direccion":"Jr. Lima N° 801","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP"],"lat":-5.0849694,"lon":-81.0892068},{"id":142,"zona":"PROVINCIA","departamento":"Piura","provincia":"Piura","estacion":"Piura 1","direccion":"Av. Sánchez Cerro N° 1501","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP","GLP"],"lat":-5.188101,"lon":-80.6372778},{"id":143,"zona":"PROVINCIA","departamento":"Piura","provincia":"Piura","estacion":"Piura 2","direccion":"Av. Grau N° 1201","bandera":"Primax","red":"Abanderada","r14":"R14","combustibles":["D2","GR","GP"],"lat":-5.2004378,"lon":-80.6265677},{"id":144,"zona":"PROVINCIA","departamento":"Piura","provincia":"Piura","estacion":"Piura 3","direccion":"Jr. Loreto N° 901","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-5.2004378,"lon":-80.6265677},{"id":145,"zona":"PROVINCIA","departamento":"Piura","provincia":"Piura","estacion":"Piura 4","direccion":"Panamericana Norte Km. 1002","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP","GNV"],"lat":-5.188101,"lon":-80.6372778},{"id":146,"zona":"PROVINCIA","departamento":"Piura","provincia":"Piura","estacion":"Piura 5","direccion":"Av. Ejército N° 1201","bandera":"Primax","red":"Abanderada","r14":"R14","combustibles":["D2","GR","GP","GLP"],"lat":-5.188101,"lon":-80.6372778},{"id":147,"zona":"PROVINCIA","departamento":"Piura","provincia":"Sechura","estacion":"Sechura","direccion":"Jr. Lima N° 401","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-5.5799479,"lon":-80.8284781},{"id":148,"zona":"PROVINCIA","departamento":"Piura","provincia":"Sullana","estacion":"Sullana","direccion":"Av. Buenos Aires N° 1201","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP","GLP"],"lat":-4.9182584,"lon":-80.6973363},{"id":149,"zona":"PROVINCIA","departamento":"Piura","provincia":"Talara","estacion":"Talara","direccion":"Jr. Quiñones N° 801","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP"],"lat":-4.5730796,"lon":-81.272163},{"id":150,"zona":"PROVINCIA","departamento":"Piura","provincia":"Talara","estacion":"Negritos","direccion":"Panamericana Norte Km. 1102","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-4.6413829,"lon":-81.3108473},{"id":151,"zona":"PROVINCIA","departamento":"Piura","provincia":"Talara","estacion":"Lobitos","direccion":"Av. Prolongación Lima N° 101","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-4.4573829,"lon":-81.2628473},{"id":152,"zona":"PROVINCIA","departamento":"Puno","provincia":"Azángaro","estacion":"Azangaro","direccion":"Jr. Lima N° 501 - Azángaro","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-14.9097382,"lon":-70.1943827},{"id":153,"zona":"PROVINCIA","departamento":"Puno","provincia":"Chucuito","estacion":"Juli","direccion":"Jr. 2 de Mayo N° 201","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-16.2174382,"lon":-69.4588273},{"id":154,"zona":"PROVINCIA","departamento":"Puno","provincia":"El Collao","estacion":"Ilave","direccion":"Jr. Grau N° 401 - Ilave","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-16.0815463,"lon":-69.6501019},{"id":155,"zona":"PROVINCIA","departamento":"Puno","provincia":"Puno","estacion":"Puno 1","direccion":"Jr. El Sol N° 1201","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP"],"lat":-15.8404382,"lon":-70.0213827},{"id":156,"zona":"PROVINCIA","departamento":"Puno","provincia":"Puno","estacion":"Puno 2","direccion":"Av. El Puerto N° 801","bandera":"Primax","red":"Abanderada","r14":"R14","combustibles":["D2","GR","GP","GLP"],"lat":-15.8424382,"lon":-70.0203827},{"id":157,"zona":"PROVINCIA","departamento":"Puno","provincia":"San Román","estacion":"Juliaca 1","direccion":"Jr. Circunvalación N° 1501","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP","GLP"],"lat":-15.4997087,"lon":-70.1295009},{"id":158,"zona":"PROVINCIA","departamento":"Puno","provincia":"San Román","estacion":"Juliaca 2","direccion":"Av. Mártires 4 de Noviembre N° 1201","bandera":"Primax","red":"Abanderada","r14":"R14","combustibles":["D2","GR","GP"],"lat":-15.4997087,"lon":-70.1295009},{"id":159,"zona":"PROVINCIA","departamento":"San Martín","provincia":"Bellavista","estacion":"Bellavista","direccion":"Jr. Orellana N° 401","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-7.0583829,"lon":-76.5828473},{"id":160,"zona":"PROVINCIA","departamento":"San Martín","provincia":"El Dorado","estacion":"San José de Sisa","direccion":"Jr. Lima N° 201","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-6.6273829,"lon":-76.6928473},{"id":161,"zona":"PROVINCIA","departamento":"San Martín","provincia":"Lamas","estacion":"Lamas","direccion":"Jr. San Martín N° 201","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-6.4673829,"lon":-76.5228473},{"id":162,"zona":"PROVINCIA","departamento":"San Martín","provincia":"Mariscal Cáceres","estacion":"Juanjui","direccion":"Jr. Los Alisos N° 801","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-7.2007047,"lon":-76.7360196},{"id":163,"zona":"PROVINCIA","departamento":"San Martín","provincia":"Moyobamba","estacion":"Moyobamba","direccion":"Jr. Benavides N° 601","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP"],"lat":-6.0367082,"lon":-76.9702468},{"id":164,"zona":"PROVINCIA","departamento":"San Martín","provincia":"San Martín","estacion":"Tarapoto 1","direccion":"Jr. Martínez de Compagnon N° 1201","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP","GLP"],"lat":-6.5069098,"lon":-76.3675915},{"id":165,"zona":"PROVINCIA","departamento":"San Martín","provincia":"Tocache","estacion":"Tocache","direccion":"Jr. Lima N° 401 - Tocache","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-8.1873829,"lon":-76.5128473},{"id":166,"zona":"PROVINCIA","departamento":"Tacna","provincia":"Tacna","estacion":"Tacna 1","direccion":"Av. Bolognesi N° 1201","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP"],"lat":-18.0069844,"lon":-70.2558084},{"id":167,"zona":"PROVINCIA","departamento":"Tacna","provincia":"Tacna","estacion":"Tacna 2","direccion":"Av. Grau N° 801","bandera":"Primax","red":"Abanderada","r14":"R14","combustibles":["D2","GR","GP","GLP"],"lat":-18.0069844,"lon":-70.2558084},{"id":168,"zona":"PROVINCIA","departamento":"Tacna","provincia":"Tacna","estacion":"Tacna 3","direccion":"Panamericana Sur Km. 1294","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-18.0069844,"lon":-70.2558084},{"id":169,"zona":"PROVINCIA","departamento":"Tacna","provincia":"Tarata","estacion":"Tarata","direccion":"Jr. Comercio N° 201 - Tarata","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-17.4676283,"lon":-70.0356738},{"id":170,"zona":"PROVINCIA","departamento":"Tumbes","provincia":"Contralmirante Villar","estacion":"Zorritos","direccion":"Jr. Lima N° 201 - Zorritos","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-3.6873829,"lon":-80.6728473},{"id":171,"zona":"PROVINCIA","departamento":"Tumbes","provincia":"Tumbes","estacion":"Tumbes 1","direccion":"Av. El Ejército N° 501","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP","GLP"],"lat":-3.5778301,"lon":-80.4676877},{"id":172,"zona":"PROVINCIA","departamento":"Tumbes","provincia":"Tumbes","estacion":"Tumbes 2","direccion":"Panamericana Norte Km. 1230","bandera":"Primax","red":"Abanderada","r14":"R14","combustibles":["D2","GR","GP"],"lat":-3.5778301,"lon":-80.4676877},{"id":173,"zona":"PROVINCIA","departamento":"Tumbes","provincia":"Zarumilla","estacion":"Zarumilla","direccion":"Jr. Grecia N° 201","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-3.5073829,"lon":-80.2828473},{"id":174,"zona":"PROVINCIA","departamento":"Ucayali","provincia":"Coronel Portillo","estacion":"Pucallpa 1","direccion":"Jr. Raimondi N° 1201","bandera":"Repsol","red":"Repsol","r14":"R14","combustibles":["D2","GR","GP"],"lat":-8.3806957,"lon":-74.5591934},{"id":175,"zona":"PROVINCIA","departamento":"Ucayali","provincia":"Coronel Portillo","estacion":"Pucallpa 2","direccion":"Jr. Inmaculada N° 801","bandera":"Sin Bandera","red":"Sin bandera","r14":"R14","combustibles":["D2","GR","GP"],"lat":-8.3806957,"lon":-74.5591934}];
+
+// ═══════════════════════════════════════════════════════════
+// APP STATE
+// ═══════════════════════════════════════════════════════════
+const ALL_DATA = [...LIMA_DATA, ...PROV_DATA];
+let currentZone = 'lima';
+let userLat = null, userLon = null;
+let markers = {};
+let userMarker = null;
+let closestStation = null;
+let activeFuels = new Set();
+let activeVehicles = new Set();
+let sortByDist = false;
+let activeCard = null;
+let map = null;
+
+// Vehicle type helpers — R14 = heavy trucks allowed; all stations accept light/van/truck
+function getVehicleTypes(station) {
+  const types = ['light','van','truck'];
+  if(station.r14 === 'R14') types.push('heavy');
+  return types;
+}
+
+// ═══════════════════════════════════════════════════════════
+// MAP INIT — Google Maps (works on file:// and mobile)
+// ═══════════════════════════════════════════════════════════
+
+function initMap() {
+  map = L.map('map', {zoomControl: true}).setView([-12.046374,-77.042793], 11);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors © <a href="https://carto.com/attributions">CARTO</a>',
+    subdomains: 'abcd',
+    maxZoom: 19
+  }).addTo(map);
+}
+
+function makeIcon(color, isClosest=false) {
+  const size = isClosest ? 20 : 14;
+  return L.divIcon({
+    className:'',
+    html:`<div style="width:${size}px;height:${size}px;background:${color};border:2.5px solid white;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,.4)"></div>`,
+    iconSize:[size,size], iconAnchor:[size/2,size/2]
+  });
+}
+
+function getColor(station, isClosest) {
+  if(isClosest) return '#10B981';
+  return station.zona==='LIMA' ? '#1A4DB5' : '#D97706';
+}
+
+// ═══════════════════════════════════════════════════════════
+// POPULATE FILTERS
+// ═══════════════════════════════════════════════════════════
+function populateFilters() {
+  const distSelect = document.getElementById('filter-dist');
+  const depts = [...new Set(LIMA_DATA.map(d=>d.distrito))].sort();
+  depts.forEach(d => {
+    const o = document.createElement('option');
+    o.value = d; o.textContent = d;
+    distSelect.appendChild(o);
+  });
+  const deptSel = document.getElementById('filter-dept');
+  const departments = [...new Set(PROV_DATA.map(d=>d.departamento))].sort();
+  departments.forEach(d => {
+    const o = document.createElement('option');
+    o.value = d; o.textContent = d;
+    deptSel.appendChild(o);
+  });
+}
+
+function onDeptChange() {
+  const dept = document.getElementById('filter-dept').value;
+  const provSel = document.getElementById('filter-prov-sel');
+  provSel.innerHTML = '<option value="">Todas las provs.</option>';
+  if(dept) {
+    const provs = [...new Set(PROV_DATA.filter(d=>d.departamento===dept).map(d=>d.provincia))].sort();
+    provs.forEach(p => {
+      const o = document.createElement('option');
+      o.value = p; o.textContent = p;
+      provSel.appendChild(o);
+    });
+  }
+  applyFilters();
+}
+
+// ═══════════════════════════════════════════════════════════
+// ZONE SWITCH
+// ═══════════════════════════════════════════════════════════
+function switchZone(zone) {
+  currentZone = zone;
+  ['lima','prov','all'].forEach(z => {
+    document.getElementById(`tab-${z}`).classList.toggle('active', z===zone);
+  });
+  // Show/hide appropriate filter controls
+  const isLima = zone==='lima';
+  const isProv = zone==='prov';
+  const isAll = zone==='all';
+  document.getElementById('filter-dist').style.display = (isLima||isAll) ? '' : 'none';
+  document.getElementById('filter-dept').style.display = (isProv||isAll) ? '' : 'none';
+  document.getElementById('filter-prov-sel').style.display = (isProv||isAll) ? '' : 'none';
+  document.getElementById('filter-dist').style.display = isLima ? '' : 'none';
+
+  if(map) {
+    if(isLima) map.setView([-12.046374,-77.042793], 11);
+    else if(isProv) map.setView([-9.18997,-75.01515], 6);
+    else map.setView([-12.046374,-77.042793], 6);
+  }
+  applyFilters();
+}
+
+// ═══════════════════════════════════════════════════════════
+// FILTER LOGIC
+// ═══════════════════════════════════════════════════════════
+function getActiveData() {
+  if(currentZone==='lima') return LIMA_DATA;
+  if(currentZone==='prov') return PROV_DATA;
+  return ALL_DATA;
+}
+
+function applyFilters() {
+  const q = document.getElementById('search-input').value.toLowerCase();
+  const dist = document.getElementById('filter-dist').value;
+  const dept = document.getElementById('filter-dept').value;
+  const prov = document.getElementById('filter-prov-sel').value;
+  let data = getActiveData();
+
+  data = data.filter(s => {
+    if(q && !s.estacion.toLowerCase().includes(q) && !s.direccion.toLowerCase().includes(q) &&
+       !(s.distrito||'').toLowerCase().includes(q) && !(s.departamento||'').toLowerCase().includes(q)) return false;
+    if(dist && s.zona==='LIMA' && s.distrito!==dist) return false;
+    if(dept && s.zona==='PROVINCIA' && s.departamento!==dept) return false;
+    if(prov && s.zona==='PROVINCIA' && s.provincia!==prov) return false;
+    if(activeFuels.size>0 && ![...activeFuels].every(f=>s.combustibles.includes(f))) return false;
+    if(activeVehicles.size>0) {
+      const vTypes = getVehicleTypes(s);
+      if(![...activeVehicles].every(v=>vTypes.includes(v))) return false;
+    }
+    return true;
+  });
+
+  if(sortByDist && userLat!==null) {
+    data = [...data].sort((a,b)=>haversine(userLat,userLon,a.lat,a.lon)-haversine(userLat,userLon,b.lat,b.lon));
+  }
+
+  renderList(data);
+  renderMarkers(data);
+  document.getElementById('results-count').textContent = data.length;
+}
+
+// ═══════════════════════════════════════════════════════════
+// VEHICLE CHIPS HELPER
+// ═══════════════════════════════════════════════════════════
+function vehicleChips(s) {
+  const vTypes = getVehicleTypes(s);
+  const labels = {
+    light: {icon:'🚙', label:'Camioneta', color:'#DBEAFE', text:'#1e40af'},
+    van:   {icon:'🚐', label:'Furgón',    color:'#FEF3C7', text:'#92400E'},
+    truck: {icon:'🚚', label:'Camión',    color:'#FEE2E2', text:'#991B1B'},
+    heavy: {icon:'🚛', label:'C. Pesada', color:'#ECFDF5', text:'#065F46'},
+  };
+  return vTypes.map(v => {
+    const l = labels[v];
+    return `<span style="display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:8px;font-size:9.5px;font-weight:600;background:${l.color};color:${l.text};margin:1px">${l.icon} ${l.label}</span>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════════
+// RENDER LIST
+// ═══════════════════════════════════════════════════════════
+function renderList(stations) {
+  const list = document.getElementById('station-list');
+  if(!stations.length) {
+    list.innerHTML = `<div class="no-results">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/><path d="M8 11h6M11 8v6"/></svg>
+      <p>No se encontraron estaciones con los filtros seleccionados.</p>
+    </div>`;
+    return;
+  }
+  list.innerHTML = stations.map((s,i) => {
+    const isClose = s===closestStation;
+    const dist = (userLat!==null) ? haversine(userLat,userLon,s.lat,s.lon) : null;
+    const distStr = dist!==null ? (dist<1?`${Math.round(dist*1000)}m`:`${dist.toFixed(1)}km`) : '';
+    const locLine = s.zona==='LIMA'
+      ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>${s.distrito}`
+      : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>${s.departamento} › ${s.provincia}`;
+    const fuels = s.combustibles.map(f=>`<span class="fuel-chip ${f}">${f}</span>`).join('');
+    const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${s.lat},${s.lon}&travelmode=driving`;
+    const wazeUrl = `https://waze.com/ul?ll=${s.lat},${s.lon}&navigate=yes`;
+    const shareText = `⛽ ${s.estacion}\n📍 ${s.direccion}\n🗺️ https://maps.google.com/?q=${s.lat},${s.lon}`;
+    return `<div class="station-card${isClose?' active':''}" id="card-${s.id}" onclick="selectStation(${JSON.stringify(s).replace(/"/g,'&quot;')})">
+      <div class="card-top">
+        <div class="card-name">${s.estacion}</div>
+        ${distStr?`<div class="card-dist-badge${dist<2?' near':''}">${isClose?'⭐ ':''} ${distStr}</div>`:''}
+      </div>
+      <div class="card-location">${locLine}</div>
+      <div class="card-addr">${s.direccion}</div>
+      <div class="card-bandera"><span class="bandera-dot"></span>${s.bandera||'—'} · <span style="color:var(--gray-500)">${s.r14||''}</span></div>
+      <div class="card-fuels">${fuels}</div>
+      <div class="card-vehicles">${vehicleChips(s)}</div>
+      <div class="card-actions">
+        <button class="btn-nav" onclick="event.stopPropagation();window.open('${mapsUrl}','_blank')">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>Google Maps
+        </button>
+        <button class="btn-waze" onclick="event.stopPropagation();window.open('${wazeUrl}','_blank')">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>Waze
+        </button>
+        <button class="btn-share" onclick="event.stopPropagation();shareStation(${JSON.stringify(shareText).replace(/"/g,'&quot;')})">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+        </button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function selectStation(s) {
+  if(map) {
+    map.setView([s.lat, s.lon], 16);
+    if(markers[s.id]) markers[s.id].openPopup();
+  }
+  document.querySelectorAll('.station-card').forEach(c=>c.classList.remove('active'));
+  const el = document.getElementById(`card-${s.id}`);
+  if(el) { el.classList.add('active'); el.scrollIntoView({behavior:'smooth',block:'nearest'}); }
+}
+
+// ═══════════════════════════════════════════════════════════
+// RENDER MARKERS — Google Maps
+// ═══════════════════════════════════════════════════════════
+function renderMarkers(stations) {
+  if(!map) return;
+  Object.values(markers).forEach(m=>map.removeLayer(m));
+  markers = {};
+  stations.forEach(s => {
+    if(!s.lat||!s.lon) return;
+    const isClose = s===closestStation;
+    const color = getColor(s, isClose);
+    const icon = makeIcon(color, isClose);
+    const locLine = s.zona==='LIMA' ? s.distrito : `${s.departamento} › ${s.provincia}`;
+    const fuels = s.combustibles.map(f=>`<span class="fuel-chip ${f}" style="font-size:10px;padding:1px 6px">${f}</span>`).join('');
+    const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${s.lat},${s.lon}&travelmode=driving`;
+    const wazeUrl = `https://waze.com/ul?ll=${s.lat},${s.lon}&navigate=yes`;
+    const popup = L.popup({maxWidth:260}).setContent(`
+      <div style="padding:4px 0">
+        <div class="popup-name">${s.estacion}</div>
+        <div class="popup-loc">📍 ${locLine}</div>
+        <div class="popup-addr">${s.direccion}</div>
+        <div class="popup-fuels">${fuels}</div>
+        <div class="popup-actions" style="margin-top:6px">
+          <a class="popup-btn maps" href="${mapsUrl}" target="_blank">🗺️ Maps</a>
+          <a class="popup-btn waze" href="${wazeUrl}" target="_blank">📡 Waze</a>
+        </div>
+      </div>`);
+    const m = L.marker([s.lat, s.lon], {icon}).addTo(map).bindPopup(popup);
+    m.on('click', ()=>{
+      document.querySelectorAll('.station-card').forEach(c=>c.classList.remove('active'));
+      const el = document.getElementById(`card-${s.id}`);
+      if(el) { el.classList.add('active'); el.scrollIntoView({behavior:'smooth',block:'nearest'}); }
+    });
+    markers[s.id] = m;
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// GPS / LOCATE
+// ═══════════════════════════════════════════════════════════
+function haversine(lat1,lon1,lat2,lon2) {
+  const R=6371,dLat=(lat2-lat1)*Math.PI/180,dLon=(lon2-lon1)*Math.PI/180;
+  const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+
+function locateUser() {
+  if(!map) { showToast('El mapa aún está cargando…'); return; }
+  if(!navigator.geolocation) { showToast('⚠️ Tu navegador no soporta GPS'); return; }
+  showToast('📡 Obteniendo tu ubicación…');
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      userLat = pos.coords.latitude;
+      userLon = pos.coords.longitude;
+      if(userMarker) map.removeLayer(userMarker);
+      userMarker = L.marker([userLat,userLon], {
+        icon: L.divIcon({
+          className:'',
+          html:'<div style="width:18px;height:18px;background:#2563EB;border:3px solid white;border-radius:50%;box-shadow:0 0 0 6px rgba(37,99,235,.25)"></div>',
+          iconSize:[18,18], iconAnchor:[9,9]
+        })
+      }).addTo(map).bindPopup('<b>📍 Tu ubicación</b>').openPopup();
+      map.setView([userLat,userLon], 13);
+      findClosest();
+      sortByDist = true;
+      applyFilters();
+      showToast('✅ Ubicación obtenida. Mostrando el más cercano.');
+    },
+    err => {
+      let msg = '⚠️ No se pudo obtener la ubicación.';
+      if(err.code===1) msg = '⚠️ Permiso GPS denegado. Actívalo en ajustes del navegador.';
+      else if(err.code===2) msg = '⚠️ GPS no disponible en este dispositivo.';
+      else if(err.code===3) msg = '⚠️ Tiempo agotado. Intenta de nuevo.';
+      showToast(msg);
+    },
+    {enableHighAccuracy:true, timeout:15000, maximumAge:0}
+  );
+}
+
+function findClosest() {
+  const data = getActiveData();
+  let minDist = Infinity; closestStation = null;
+  data.forEach(s => {
+    if(!s.lat||!s.lon) return;
+    const d = haversine(userLat,userLon,s.lat,s.lon);
+    if(d<minDist) { minDist=d; closestStation=s; }
+  });
+  if(closestStation) {
+    const banner = document.getElementById('closest-banner');
+    banner.classList.add('show');
+    document.getElementById('cb-name').textContent = closestStation.estacion;
+    document.getElementById('cb-dist').textContent = `📍 ${minDist<1?Math.round(minDist*1000)+'m':minDist.toFixed(1)+'km'} — ${closestStation.zona==='LIMA'?closestStation.distrito:closestStation.departamento}`;
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${closestStation.lat},${closestStation.lon}&travelmode=driving`;
+    document.getElementById('cb-nav-btn').onclick = ()=>window.open(url,'_blank');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// FUEL TAGS
+// ═══════════════════════════════════════════════════════════
+function toggleFuel(el) {
+  const f = el.dataset.fuel;
+  if(activeFuels.has(f)) { activeFuels.delete(f); el.classList.remove('active'); }
+  else { activeFuels.add(f); el.classList.add('active'); }
+  applyFilters();
+}
+
+function toggleSort() {
+  sortByDist = !sortByDist;
+  document.getElementById('sort-label').textContent = sortByDist ? '↕ Por distancia ✓' : '↕ Por nombre';
+  applyFilters();
+}
+
+// ═══════════════════════════════════════════════════════════
+// SHARE
+// ═══════════════════════════════════════════════════════════
+function shareStation(text) {
+  if(navigator.share) {
+    navigator.share({title:'Grifo REDCOL', text});
+  } else if(navigator.clipboard) {
+    navigator.clipboard.writeText(text);
+    showToast('📋 Ubicación copiada al portapapeles');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════════════════════════
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.classList.remove('show'), 3000);
+}
+
+// ═══════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════
+window.addEventListener('load', () => {
+  initMap();
+  document.getElementById('hd-lima').textContent = LIMA_DATA.length;
+  document.getElementById('hd-prov').textContent = PROV_DATA.length;
+  document.getElementById('hd-total').textContent = ALL_DATA.length;
+  document.getElementById('badge-lima').textContent = LIMA_DATA.length;
+  document.getElementById('badge-prov').textContent = PROV_DATA.length;
+  document.getElementById('badge-all').textContent = ALL_DATA.length;
+  populateFilters();
+  switchZone('lima');
+  setTimeout(()=>{ document.getElementById('loading').classList.add('hidden'); }, 800);
+});
+
+// Vehicle filter toggle
+function toggleVehicle(el) {
+  const v = el.dataset.vehicle;
+  if(activeVehicles.has(v)) {
+    activeVehicles.delete(v);
+    el.classList.remove('active');
+  } else {
+    activeVehicles.add(v);
+    el.classList.add('active');
+  }
+  applyFilters();
+}
+</script>
+</body>
+</html>
